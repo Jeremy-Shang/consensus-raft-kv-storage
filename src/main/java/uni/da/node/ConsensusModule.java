@@ -5,14 +5,15 @@ package uni.da.node;
         - 判断写入Log的内容
 */
 
+import uni.da.entity.RequestVoteRespond;
+
 public interface ConsensusModule extends RaftModule{
 
-    void requestVoteRpcRequest();
+    // 要求投票
+    RequestVoteRespond requestVote();
 
-    void requestVoteRpcRespond();
+    // 反馈投票
+    void respondVote(RequestVoteRespond requestVoteRespond);
 
-    void appendEntriesRpcRequest();
-
-    void appendEntriesRpcRespond();
-
+    String rpcTest();
 }

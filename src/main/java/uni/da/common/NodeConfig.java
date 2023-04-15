@@ -31,4 +31,7 @@ public class NodeConfig {
 
     // 集群中其他所有的节点地址
     private List<String> clusterAddr;
+
+    // 端口
+    private int port;
 }

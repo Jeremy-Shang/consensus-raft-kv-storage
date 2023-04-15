@@ -3,11 +3,18 @@ package uni.da.node.impl;
 import lombok.Data;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.dubbo.config.ProtocolConfig;
+import org.apache.dubbo.config.RegistryConfig;
+import org.apache.dubbo.config.ServiceConfig;
+import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import uni.da.common.NodeConfig;
 import uni.da.node.ConsensusModule;
 import uni.da.node.LogModule;
 import uni.da.node.Node;
 import uni.da.node.StateMachineModule;
+import uni.da.remote.RaftRpcService;
+import uni.da.remote.impl.RaftRpcServiceImpl;
 import uni.da.status.Status;
 
 /*
@@ -39,12 +46,11 @@ public class NodeImpl implements Node {
 
     private StateMachineModule stateMachine;
 
-
     // 节点单例保证安全
     public NodeImpl(NodeConfig config) {
         this.nodeConfig = config;
-
     }
+
 
 //    private static synchronized NodeImpl getInstance(NodeConfig config) {
 //        if (NodeImpl.nodeImpl == null) {
@@ -57,7 +63,21 @@ public class NodeImpl implements Node {
 
     public void start() {
         log.info("Node[{}] start at {}.", status, nodeConfig.getAddr());
+
         // TODO: 1. 启动心跳监听线程 2. 启动RPC监听 3.?
+        // 注册该节点提供的RPC服务
+        ServiceConfig<RaftRpcService> service = new ServiceConfig<>();
+        service.setInterface(RaftRpcService.class);
+        service.setRef(new RaftRpcServiceImpl());
+
+        // 启动服务
+        DubboBootstrap.getInstance()
+                .application(nodeConfig.getName())
+                .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
+                .protocol(new ProtocolConfig("dubbo", nodeConfig.getPort()))
+                .service(service)
+                .start()            // 启动Dubbo
+                .await();           // 挂起等待
     }
 
     @Override
