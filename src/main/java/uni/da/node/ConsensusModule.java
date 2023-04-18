@@ -5,15 +5,17 @@ package uni.da.node;
         - 判断写入Log的内容
 */
 
-import uni.da.entity.RequestVoteRespond;
+
+import uni.da.remote.RaftRpcClient;
+import uni.da.remote.RaftRpcService;
 
 public interface ConsensusModule extends RaftModule{
 
-    // 要求投票
-    RequestVoteRespond requestVote();
+    // 获取本地暴露服务以及远程提供的服务
+    public RaftRpcClient getRpcClient();
 
-    // 反馈投票
-    void respondVote(RequestVoteRespond requestVoteRespond);
+    public RaftRpcService getSelfRpcService();
 
-    String rpcTest();
+    // 设置远程服务
+    public void setRemoteRpcServices();
 }

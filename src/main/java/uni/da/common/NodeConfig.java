@@ -20,8 +20,14 @@ import java.util.List;
 @ToString
 public class NodeConfig {
 
+    // 随机生成，当作分布式全局唯一ID
+    private String uuid;
+
     // 自己的地址
-    private String addr;
+    private String ip;
+
+    // 端口
+    private int port;
 
     // 超时时长
     private int timeout;
@@ -30,8 +36,6 @@ public class NodeConfig {
     private String name;
 
     // 集群中其他所有的节点地址
-    private List<String> clusterAddr;
+    private List<NodeConfig> clusterConfig;
 
-    // 端口
-    private int port;
 }

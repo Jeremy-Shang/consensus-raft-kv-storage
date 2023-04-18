@@ -1,8 +1,10 @@
 package uni.da.node.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import uni.da.entity.RequestVoteRespond;
+
 import uni.da.node.ConsensusModule;
+import uni.da.remote.RaftRpcClient;
+import uni.da.remote.RaftRpcService;
 
 
 @Slf4j
@@ -19,17 +21,17 @@ public class ConsensusModuleImpl implements ConsensusModule {
     }
 
     @Override
-    public RequestVoteRespond requestVote() {
+    public RaftRpcClient getRpcClient() {
         return null;
     }
 
     @Override
-    public void respondVote(RequestVoteRespond requestVoteRespond) {
-
+    public RaftRpcService getSelfRpcService() {
+        return null;
     }
 
     @Override
-    public String rpcTest() {
-        return "hello rpc call";
+    public void setRemoteRpcServices() {
+
     }
 }

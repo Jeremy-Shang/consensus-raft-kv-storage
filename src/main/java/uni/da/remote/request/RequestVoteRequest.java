@@ -1,4 +1,4 @@
-package uni.da.entity;
+package uni.da.remote.request;
 
 public class RequestVoteRequest {
 }

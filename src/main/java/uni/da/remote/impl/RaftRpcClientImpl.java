@@ -1,26 +1,24 @@
 package uni.da.remote.impl;
 
-import uni.da.remote.RaftRpcService;
+import uni.da.remote.RaftRpcClient;
 import uni.da.remote.request.AppendEntryRequest;
 import uni.da.remote.request.RequestVoteRequest;
 import uni.da.remote.respond.AppendEntryResponse;
 import uni.da.remote.respond.RequestVoteResponse;
 
-public class RaftRpcServiceImpl implements RaftRpcService {
-
-
+public class RaftRpcClientImpl implements RaftRpcClient {
     @Override
-    public RequestVoteResponse handleRequestVote(RequestVoteRequest request) {
+    public RequestVoteResponse requestVote(RequestVoteRequest request) {
         return null;
     }
 
     @Override
-    public AppendEntryResponse handleAppendEntry(AppendEntryRequest request) {
+    public AppendEntryResponse appendEntry(AppendEntryRequest request) {
         return null;
     }
 
     @Override
-    public void handleHeartBeat() {
+    public void heartBeat() {
 
     }
 }

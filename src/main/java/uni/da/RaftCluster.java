@@ -32,15 +32,15 @@ public class RaftCluster {
                 .map(m -> (String) m.get("address"))
                 .collect(Collectors.toList());
 
-        // 构造节点配置
-        yamlConfig.get("nodes")
-                .stream()
-                .forEach(m ->  {
-                    String addr = (String) m.get("address"), name = (String) m.get("name");
-                    int timeout = (int) m.get("timeout");
-                    NodeConfig config = new NodeConfig(addr, timeout, name, address);
-                    nodeConfigList.add(config);
-                });
+//        // 构造节点配置
+//        yamlConfig.get("nodes")
+//                .stream()
+//                .forEach(m ->  {
+//                    String addr = (String) m.get("address"), name = (String) m.get("name");
+//                    int timeout = (int) m.get("timeout");
+//                    NodeConfig config = new NodeConfig(addr, timeout, name, address);
+//                    nodeConfigList.add(config);
+//                });
 
         log.info("集群配置：" + nodeConfigList.toString());
     }

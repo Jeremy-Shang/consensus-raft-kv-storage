@@ -1,16 +1,18 @@
 package uni.da.remote;
 
+import uni.da.remote.request.AppendEntryRequest;
+import uni.da.remote.request.RequestVoteRequest;
+import uni.da.remote.respond.AppendEntryResponse;
+import uni.da.remote.respond.RequestVoteResponse;
+
 /*
-    远程服务接口, Raft集群每个节点负责处理的rpc call有三类
-        - 回复 appendlogentries
-        - 回复 requestvote
-        - 接受心跳
+    每个Raft节点实际提供的服务
  */
 public interface RaftRpcService {
 
-    public String requestVote(String name);
+    public RequestVoteResponse handleRequestVote(RequestVoteRequest request);
 
-    public String appendLog();
+    public AppendEntryResponse handleAppendEntry(AppendEntryRequest request);
 
-    public String heartBeat();
+    public void handleHeartBeat();
 }
