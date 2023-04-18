@@ -10,6 +10,8 @@ import uni.da.status.Status;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 /*
     每个节点的配置信息
@@ -35,7 +37,18 @@ public class NodeConfig {
     // 名字，用来debug
     private String name;
 
-    // 集群中其他所有的节点地址
+    // 集群中其他所有的节点的配置
     private List<NodeConfig> clusterConfig;
 
+    public NodeConfig(String name, String ip, int port) {
+        this.name = name;
+        this.ip = ip;
+        this.port = port;
+
+        uuid = String.valueOf(UUID.randomUUID());
+        // 150～500ms的随机超时时间
+        int min = 500, max = 1000;
+        Random random = new Random();
+        timeout = random.nextInt(max - min + 1) + min;
+    }
 }

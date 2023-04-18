@@ -47,13 +47,16 @@ public class NodeImpl implements Node {
 
 
     // 节点单例保证安全
-    public NodeImpl(NodeConfig config) {
+    private NodeImpl(NodeConfig config) {
         // 设置节点属性
         this.nodeConfig = config;
         nodeConfig.setUuid(String.valueOf(UUID.randomUUID()));
+
+        // 初始化模块
+        consensusModule = ConsensusModuleImpl.getInstance();
     }
 
-    private static synchronized NodeImpl getInstance(NodeConfig config) {
+    public static synchronized NodeImpl getInstance(NodeConfig config) {
         if (NodeImpl.nodeImpl == null) {
             NodeImpl.nodeImpl = new NodeImpl(config);
         }
@@ -65,8 +68,9 @@ public class NodeImpl implements Node {
         log.info("Node[{}] start at {}:{}.", status, nodeConfig.getIp(), nodeConfig.getPort());
 
         // TODO: 1. 启动心跳监听线程 2. 启动RPC监听 3.?
-        remoteClientRegistry();
         remoteServiceRegistry();
+//        remoteClientRegistry();
+
     }
 
     @Override
@@ -102,7 +106,7 @@ public class NodeImpl implements Node {
 
         // 连接注册中心配置
         RegistryConfig registry = new RegistryConfig();
-        registry.setRegister(false);
+        registry.setAddress("N/A");
 
         // 服务提供者协议配置
         ProtocolConfig protocol = new ProtocolConfig();
@@ -118,8 +122,11 @@ public class NodeImpl implements Node {
         service.setInterface(RaftRpcService.class);
         service.setRef(consensusModule.getSelfRpcService());
 
+        service.setTimeout(nodeConfig.getTimeout());
+
         // 暴露及注册服务
         service.export();
+
     }
 
     private void remoteClientRegistry(){
@@ -128,34 +135,27 @@ public class NodeImpl implements Node {
         Map<String, RaftRpcService> remoteServiceMap = new HashMap<>();
 
         for(NodeConfig config: nodeConfigList) {
-            // 当前应用配置
-            ApplicationConfig application = new ApplicationConfig();
-            application.setName(nodeConfig.getName() + "-remote-client");
 
             // 连接注册中心配置 (不使用)
             RegistryConfig registry = new RegistryConfig();
-            registry.setRegister(false);
+            registry.setAddress("N/A");
 
             // 引用远程服务 reference 为重对象
             ReferenceConfig<RaftRpcService> reference = new ReferenceConfig<RaftRpcService>();
-            reference.setApplication(application);
             reference.setRegistry(registry);
             reference.setInterface(RaftRpcService.class);
             reference.setUrl("dubbo://" + config.getIp() + ":" + config.getPort());
+
+            reference.setTimeout(config.getTimeout());
 
             try {
                 RaftRpcService raftRpcService = reference.get();
                 // 获取该节点对应的服务
                 remoteServiceMap.put(config.getUuid(), raftRpcService);
             } catch (Exception e) {
-                log.info("获取远程服务失败: {}" + config.getName());
+                log.info("获取远程服务失败: {}", config.getName());
             }
         }
-    }
-
-    public static void main(String[] args) {
-        Node node = new NodeImpl(new NodeConfig());
-
     }
 
 }

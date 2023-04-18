@@ -9,6 +9,8 @@ package uni.da.node;
 import uni.da.remote.RaftRpcClient;
 import uni.da.remote.RaftRpcService;
 
+import java.util.Map;
+
 public interface ConsensusModule extends RaftModule{
 
     // 获取本地暴露服务以及远程提供的服务
@@ -17,5 +19,5 @@ public interface ConsensusModule extends RaftModule{
     public RaftRpcService getSelfRpcService();
 
     // 设置远程服务
-    public void setRemoteRpcServices();
+    public void setRemoteRpcServices(Map<String, RaftRpcService> remoteServiceMap);
 }
