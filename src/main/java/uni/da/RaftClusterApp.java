@@ -63,7 +63,7 @@ public class RaftClusterApp {
     }
 
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 
         RaftClusterApp.getNode().start();
 

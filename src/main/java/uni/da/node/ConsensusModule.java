@@ -20,4 +20,6 @@ public interface ConsensusModule extends RaftModule{
 
     // 设置远程服务
     public void setRemoteRpcServices(Map<String, RaftRpcService> remoteServiceMap);
+
+    public String sayHi();
 }

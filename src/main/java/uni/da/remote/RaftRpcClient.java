@@ -16,4 +16,6 @@ public interface RaftRpcClient {
     public AppendEntryResponse appendEntry(AppendEntryRequest request);
 
     public void heartBeat();
+
+    public String hello();
 }

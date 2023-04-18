@@ -64,12 +64,51 @@ public class NodeImpl implements Node {
         return NodeImpl.nodeImpl;
     }
 
-    public void start() {
+    public void start() throws InterruptedException {
         log.info("Node[{}] start at {}:{}.", status, nodeConfig.getIp(), nodeConfig.getPort());
 
         // TODO: 1. 启动心跳监听线程 2. 启动RPC监听 3.?
-        remoteServiceRegistry();
-//        remoteClientRegistry();
+
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                remoteServiceRegistry();
+            }
+        };
+
+
+        Runnable r0 = new Runnable() {
+            @Override
+            public void run() {
+                remoteClientRegistry();
+            }
+        };
+
+        Thread t1 = new Thread(r);
+
+        Thread t2 = new Thread(r0);
+
+        t1.start();
+        Thread.sleep(5000);
+        t2.start();
+        Thread.sleep(5000);
+
+
+
+        log.info(consensusModule.sayHi());
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            synchronized (this) {
+                this.notifyAll();
+            }
+        }));
+
+        log.info("gracefully wait");
+
+        synchronized (this) {
+            this.wait();
+        }
+
 
     }
 
@@ -100,37 +139,40 @@ public class NodeImpl implements Node {
     }
 
     private void remoteServiceRegistry() {
-        // 当前应用配置
-        ApplicationConfig application = new ApplicationConfig();
-        application.setName(nodeConfig.getName() + "-remote-service");
-
-        // 连接注册中心配置
-        RegistryConfig registry = new RegistryConfig();
-        registry.setAddress("N/A");
-
-        // 服务提供者协议配置
-        ProtocolConfig protocol = new ProtocolConfig();
-        protocol.setName("dubbo");
-        protocol.setPort(nodeConfig.getPort());
-        protocol.setThreads(200);
+//        // 当前应用配置
+//        ApplicationConfig application = new ApplicationConfig();
+//        application.setName(nodeConfig.getName() + "-remote-service");
+//
+//        // 连接注册中心配置
+//        RegistryConfig registry = new RegistryConfig();
+//        registry.setAddress("N/A");
+//
+//        // 服务提供者协议配置
+//        ProtocolConfig protocol = new ProtocolConfig();
+//        protocol.setName("dubbo");
+//        protocol.setPort(nodeConfig.getPort());
+//        protocol.setThreads(200);
 
         // 服务提供者暴露服务配置
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
-        service.setApplication(application);
-        service.setRegistry(registry);
-        service.setProtocol(protocol);
         service.setInterface(RaftRpcService.class);
         service.setRef(consensusModule.getSelfRpcService());
-
         service.setTimeout(nodeConfig.getTimeout());
 
-        // 暴露及注册服务
-        service.export();
+        // 启动 Dubbo
+        DubboBootstrap.getInstance()
+                .application("first-dubbo-provider")
+                .registry(new RegistryConfig("N/A"))
+                .protocol(new ProtocolConfig("dubbo", nodeConfig.getPort()))
+                .service(service)
+                .start()
+                .await();
 
     }
 
     private void remoteClientRegistry(){
         log.info("加载集群远程服务...");
+        System.out.println("加载远程服务");
         List<NodeConfig> nodeConfigList = nodeConfig.getClusterConfig();
         Map<String, RaftRpcService> remoteServiceMap = new HashMap<>();
 
@@ -156,6 +198,8 @@ public class NodeImpl implements Node {
                 log.info("获取远程服务失败: {}", config.getName());
             }
         }
+
+        consensusModule.setRemoteRpcServices(remoteServiceMap);
     }
 
 }

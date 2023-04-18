@@ -17,11 +17,11 @@ public class ConsensusModuleImpl implements ConsensusModule {
     // 单例模块
     private static ConsensusModuleImpl consensusModuleImpl = null;
 
-    private final RaftRpcService raftRpcService = new RaftRpcServiceImpl();
+    public RaftRpcService raftRpcService = new RaftRpcServiceImpl();
 
-    private final RaftRpcClient raftRpcClient = new RaftRpcClientImpl();
+    public RaftRpcClient raftRpcClient = new RaftRpcClientImpl();
 
-    private Map<String, RaftRpcService> remoteServiceMap;
+    public Map<String, RaftRpcService> remoteServiceMap;
 
     private ConsensusModuleImpl() {
 
@@ -56,5 +56,18 @@ public class ConsensusModuleImpl implements ConsensusModule {
     @Override
     public void setRemoteRpcServices(Map<String, RaftRpcService> remoteServiceMap) {
         this.remoteServiceMap = remoteServiceMap;
+    }
+
+    @Override
+    public String sayHi() {
+        StringBuilder sb = new StringBuilder();
+        remoteServiceMap.keySet().forEach(k -> sb.append(remoteServiceMap.get(k).hello()));
+
+        for(String k: remoteServiceMap.keySet()) {
+            log.info("在这里调用Hello服务");
+            String s = remoteServiceMap.get(k).hello();
+            sb.append(s);
+        }
+        return sb.toString();
     }
 }

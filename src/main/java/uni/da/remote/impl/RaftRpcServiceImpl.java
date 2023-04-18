@@ -23,4 +23,9 @@ public class RaftRpcServiceImpl implements RaftRpcService {
     public void handleHeartBeat() {
 
     }
+
+    @Override
+    public String hello() {
+        return "Hello world!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    }
 }
