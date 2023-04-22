@@ -94,7 +94,6 @@ public class NodeImpl implements Node {
         Thread.sleep(5000);
 
 
-
         log.info(consensusModule.sayHi());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -105,6 +104,8 @@ public class NodeImpl implements Node {
 
         log.info("gracefully wait");
 
+        // 当前线程在该对象上等待
+        // 在JVM终止的时候，调用上述notifyAll()唤醒当前线程
         synchronized (this) {
             this.wait();
         }
@@ -139,20 +140,6 @@ public class NodeImpl implements Node {
     }
 
     private void remoteServiceRegistry() {
-//        // 当前应用配置
-//        ApplicationConfig application = new ApplicationConfig();
-//        application.setName(nodeConfig.getName() + "-remote-service");
-//
-//        // 连接注册中心配置
-//        RegistryConfig registry = new RegistryConfig();
-//        registry.setAddress("N/A");
-//
-//        // 服务提供者协议配置
-//        ProtocolConfig protocol = new ProtocolConfig();
-//        protocol.setName("dubbo");
-//        protocol.setPort(nodeConfig.getPort());
-//        protocol.setThreads(200);
-
         // 服务提供者暴露服务配置
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
         service.setInterface(RaftRpcService.class);
@@ -169,7 +156,6 @@ public class NodeImpl implements Node {
                 .await();
 
     }
-
     private void remoteClientRegistry(){
         log.info("加载集群远程服务...");
         System.out.println("加载远程服务");
@@ -187,7 +173,6 @@ public class NodeImpl implements Node {
             reference.setRegistry(registry);
             reference.setInterface(RaftRpcService.class);
             reference.setUrl("dubbo://" + config.getIp() + ":" + config.getPort());
-
             reference.setTimeout(config.getTimeout());
 
             try {
