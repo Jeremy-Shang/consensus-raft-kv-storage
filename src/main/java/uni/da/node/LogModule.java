@@ -8,11 +8,13 @@ public interface LogModule extends RaftModule{
 
     public int getLastLogTerm();
 
-    public int prevLogIndex();
+    public int getPrevLogIndex();
 
-    public int prevLogTerm();
+    public int getPrevLogTerm();
 
-    public LogEntry[] getLogEntry();
+    public LogEntry[] getLogEntries();
+
+    public LogEntry[] getEmptyLogEntries();
 
     public int getMaxCommit();
 }

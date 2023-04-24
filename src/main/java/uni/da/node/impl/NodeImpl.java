@@ -186,6 +186,8 @@ public class NodeImpl implements Node {
                 log.info("获取远程服务失败: {}", addr.toString());
             }
         }
+
+        this.nodeParam.setRemoteServiceMap(remoteServiceMap);
     }
 
 }

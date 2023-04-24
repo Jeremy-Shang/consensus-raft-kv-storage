@@ -1,6 +1,6 @@
 package uni.da.statemachine.fsm.component;
 
-public enum State {
+public enum RaftState {
     LISTENING_HEARTBEAT,
     ELECTION,
     HEAR_BEAT

@@ -3,11 +3,12 @@ package uni.da.common;
 
 import lombok.*;
 import uni.da.node.LogModule;
+import uni.da.remote.RaftRpcService;
 
-import java.util.List;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /*
@@ -36,6 +37,12 @@ public class NodeParam {
     // 集群中其他所有的节点的配置
     private Map<Integer, Addr> clusterAddr;
 
+    // 心跳监听的阻塞式管道
+    private Pipe pipe;
+    
+    // 远程服务
+    private Map<Integer, RaftRpcService> remoteServiceMap;
+
 
     /** 节点动态参数 */
     // 当前任期
@@ -45,14 +52,16 @@ public class NodeParam {
     private volatile LogModule logModule;
 
 
-    private NodeParam(int id, String name, Addr addr, int[] timeoutRange) {
+    private NodeParam(int id, String name, Addr addr, int[] timeoutRange) throws IOException {
         this.id = id;
         this.name = name;
         this.addr = addr;
         this.timeout = new Random().nextInt(timeoutRange[1] - timeoutRange[0] + 1) + timeoutRange[0];
+
+        this.pipe = new Pipe("hearBeat");
     }
 
-    public static NodeParam getInstance(int id, String name, Addr addr, int[] timeoutRange) {
+    public static NodeParam getInstance(int id, String name, Addr addr, int[] timeoutRange) throws IOException {
         if (nodeParam == null) {
             nodeParam = new NodeParam(id, name, addr, timeoutRange);
         }

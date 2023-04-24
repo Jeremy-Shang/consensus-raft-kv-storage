@@ -16,7 +16,6 @@ public interface RaftRpcService {
 
     public AppendEntryResponse appendEntry(AppendEntryRequest request);
 
-    public void heartBeat();
 
     public void sayHi(NodeParam config);
 }

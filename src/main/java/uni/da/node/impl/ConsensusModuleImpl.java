@@ -15,7 +15,7 @@ public class ConsensusModuleImpl implements ConsensusModule {
     // 单例模块
     private static ConsensusModuleImpl consensusModuleImpl = null;
 
-    public RaftRpcService raftRpcService = new RaftRpcServiceImpl();
+//    public RaftRpcService raftRpcService = new RaftRpcServiceImpl();
 
 
     public Map<String, RaftRpcService> remoteServiceMap;
@@ -42,7 +42,8 @@ public class ConsensusModuleImpl implements ConsensusModule {
 
     @Override
     public RaftRpcService getSelfRpcService() {
-        return raftRpcService;
+//        return raftRpcService;
+        return null;
     }
 
     @Override

@@ -37,17 +37,22 @@ public class LogModuleImpl implements LogModule {
     }
 
     @Override
-    public int prevLogIndex() {
+    public int getPrevLogIndex() {
         return 0;
     }
 
     @Override
-    public int prevLogTerm() {
+    public int getPrevLogTerm() {
         return 0;
     }
 
     @Override
-    public LogEntry[] getLogEntry() {
+    public LogEntry[] getLogEntries() {
+        return new LogEntry[0];
+    }
+
+    @Override
+    public LogEntry[] getEmptyLogEntries() {
         return new LogEntry[0];
     }
 
