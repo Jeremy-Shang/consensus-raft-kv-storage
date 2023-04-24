@@ -5,7 +5,7 @@ import java.io.IOException;
 public class StateMachineTest {
 
     public static void main(String[] args) throws IOException {
-        RaftStateMachine raftStateMachine = new RaftStateMachine();
+
 
 //        StateMachine stateMachine1 = raftStateMachine.getStateMachine();
 //

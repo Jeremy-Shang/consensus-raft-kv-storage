@@ -90,7 +90,7 @@ public class NodeImpl implements Node {
         remoteRegistry();
 
         /** 启动状态机流转*/
-        Thread stateMachine = new Thread(new RaftStateMachine());
+        Thread stateMachine = new Thread(new RaftStateMachine(nodeParam));
         stateMachine.start();
 
 
