@@ -6,20 +6,19 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.dubbo.config.*;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
-import uni.da.common.NodeConfig;
+import uni.da.common.Addr;
+import uni.da.common.NodeParam;
 import uni.da.node.ConsensusModule;
 import uni.da.node.LogModule;
 import uni.da.node.Node;
 import uni.da.node.StateMachineModule;
 
 import uni.da.remote.RaftRpcService;
+import uni.da.statemachine.RaftStateMachine;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.*;
 
 /*
     Raft 集群节点实例
@@ -34,14 +33,17 @@ public class NodeImpl implements Node {
 
     }
 
+
+    // 集群节点状态默认 Follower
+    private Character status = Character.Follower;
+
+
     // 单例节点
     private static NodeImpl nodeImpl = null;
 
     // 节点配置信息
-    private NodeConfig nodeConfig;
+    private NodeParam nodeParam;
 
-    // 集群节点状态默认 Follower
-    private Character status = Character.Follower;
 
     // Raft节点定义模块
     private ConsensusModule consensusModule;
@@ -50,43 +52,58 @@ public class NodeImpl implements Node {
 
     private StateMachineModule stateMachine;
 
-    // Raft节点线程池
-    private ExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
 
-    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    /**
+     * 单例构造函数
+     * @param nodeParam
+     * @throws IOException
+     */
+    private NodeImpl(NodeParam nodeParam) throws IOException {
 
+        this.nodeParam = nodeParam;
 
+        /** 设置日志体，恢复当前任期号码*/
 
-    // 节点单例保证安全
-    private NodeImpl(NodeConfig config) throws IOException {
-        // 设置节点属性
-        this.nodeConfig = config;
-        nodeConfig.setUuid(String.valueOf(UUID.randomUUID()));
+        this.nodeParam.setLogModule(new LogModuleImpl(100));
 
-        // 初始化模块
-        consensusModule = ConsensusModuleImpl.getInstance();
+        this.nodeParam.getTerm().getAndSet(this.nodeParam.getLogModule().getLastLogIndex());
+
     }
 
-    public static synchronized NodeImpl getInstance(NodeConfig config) throws IOException {
+    public static synchronized NodeImpl getInstance(NodeParam nodeParam) throws IOException {
         if (NodeImpl.nodeImpl == null) {
-            NodeImpl.nodeImpl = new NodeImpl(config);
+            NodeImpl.nodeImpl = new NodeImpl(nodeParam);
         }
 
         return NodeImpl.nodeImpl;
     }
 
-    public void start() throws InterruptedException {
-        log.info("Node[{}] start at {}:{}.", status, nodeConfig.getIp(), nodeConfig.getPort());
-        // TODO: 1. 启动心跳监听线程 2. 启动RPC监听 3.?
 
-        // 1. 服务注册
-        registry();
+    /**
+     * 启动raft节点
+     * @throws InterruptedException
+     */
+    public void start() throws InterruptedException, IOException {
+        log.info("Node[{}] start at {}:{}.", status, nodeParam.getAddr().getIp(), nodeParam.getAddr().getPort());
 
-        // 2.
+        /** RPC注册*/
+        remoteRegistry();
 
+        /** 启动状态机流转*/
+        Thread stateMachine = new Thread(new RaftStateMachine());
+        stateMachine.start();
+
+
+
+
+
+
+        // 3. 启动对客户端线程
         log.info(consensusModule.sayHi());
 
-        // 主线程阻塞
+
+
+        /** 主线程阻塞*/
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             synchronized (this) {
                 this.notifyAll();
@@ -98,19 +115,9 @@ public class NodeImpl implements Node {
         }
     }
 
+
     @Override
     public void stop() {
-
-    }
-
-
-    @Override
-    public void election() {
-
-    }
-
-    @Override
-    public void heartBeat() {
 
     }
 
@@ -124,26 +131,11 @@ public class NodeImpl implements Node {
 
     }
 
-    /*
-        异步任务定义
+
+    /**
+     *  远程服务注册
      */
-
-
-
-
-
-
-
-
-
-
-
-
-    /*
-        RPC 加载
-     */
-
-    private void registry() {
+    private void remoteRegistry() {
         Thread client = new Thread(() -> remoteClientRegistry());
         Thread server = new Thread(() -> remoteServiceRegistry());
 
@@ -152,17 +144,17 @@ public class NodeImpl implements Node {
     }
 
     private void remoteServiceRegistry() {
-        // 服务提供者暴露服务配置
+        // 注册本节点的RPC服务
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
         service.setInterface(RaftRpcService.class);
         service.setRef(consensusModule.getSelfRpcService());
-        service.setTimeout(nodeConfig.getTimeout());
+        service.setTimeout(nodeParam.getTimeout());
 
-        // 启动 Dubbo
+        // 启动，暴露服务
         DubboBootstrap.getInstance()
                 .application("first-dubbo-provider")
                 .registry(new RegistryConfig("N/A"))
-                .protocol(new ProtocolConfig("dubbo", nodeConfig.getPort()))
+                .protocol(new ProtocolConfig("dubbo", nodeParam.getAddr().getPort()))
                 .service(service)
                 .start()
                 .await();
@@ -171,31 +163,29 @@ public class NodeImpl implements Node {
     private void remoteClientRegistry(){
         log.info("加载集群远程服务...");
         System.out.println("加载远程服务");
-        List<NodeConfig> nodeConfigList = nodeConfig.getClusterConfig();
-        Map<String, RaftRpcService> remoteServiceMap = new HashMap<>();
+        Map<Integer, Addr> clusterAddr = nodeParam.getClusterAddr();
+        Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
 
-        for(NodeConfig config: nodeConfigList) {
+        for(Integer id: clusterAddr.keySet()) {
+            Addr addr = clusterAddr.get(id);
             // 连接注册中心配置 (不使用)
             RegistryConfig registry = new RegistryConfig();
             registry.setAddress("N/A");
 
-            // 引用远程服务 reference 为重对象
             ReferenceConfig<RaftRpcService> reference = new ReferenceConfig<RaftRpcService>();
             reference.setRegistry(registry);
             reference.setInterface(RaftRpcService.class);
-            reference.setUrl("dubbo://" + config.getIp() + ":" + config.getPort());
-            reference.setTimeout(config.getTimeout());
+            reference.setUrl("dubbo://" + addr.getIp() + ":" + addr.getPort());
 
             try {
+                // 获取远程节点提供服务接口
                 RaftRpcService raftRpcService = reference.get();
-                // 获取该节点对应的服务
-                remoteServiceMap.put(config.getUuid(), raftRpcService);
+                // 保存在 id: service 中
+                remoteServiceMap.put(id, raftRpcService);
             } catch (Exception e) {
-                log.info("获取远程服务失败: {}", config.getName());
+                log.info("获取远程服务失败: {}", addr.toString());
             }
         }
-
-        consensusModule.setRemoteRpcServices(remoteServiceMap);
     }
 
 }

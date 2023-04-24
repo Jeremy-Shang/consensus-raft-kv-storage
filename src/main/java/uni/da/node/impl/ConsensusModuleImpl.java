@@ -3,9 +3,7 @@ package uni.da.node.impl;
 import lombok.extern.slf4j.Slf4j;
 
 import uni.da.node.ConsensusModule;
-import uni.da.remote.RaftRpcClient;
 import uni.da.remote.RaftRpcService;
-import uni.da.remote.impl.RaftRpcClientImpl;
 import uni.da.remote.impl.RaftRpcServiceImpl;
 
 import java.util.Map;
@@ -19,7 +17,6 @@ public class ConsensusModuleImpl implements ConsensusModule {
 
     public RaftRpcService raftRpcService = new RaftRpcServiceImpl();
 
-    public RaftRpcClient raftRpcClient = new RaftRpcClientImpl();
 
     public Map<String, RaftRpcService> remoteServiceMap;
 
@@ -44,11 +41,6 @@ public class ConsensusModuleImpl implements ConsensusModule {
     }
 
     @Override
-    public RaftRpcClient getRpcClient() {
-        return null;
-    }
-
-    @Override
     public RaftRpcService getSelfRpcService() {
         return raftRpcService;
     }
@@ -60,14 +52,16 @@ public class ConsensusModuleImpl implements ConsensusModule {
 
     @Override
     public String sayHi() {
-        StringBuilder sb = new StringBuilder();
-        remoteServiceMap.keySet().forEach(k -> sb.append(remoteServiceMap.get(k).hello()));
+//        StringBuilder sb = new StringBuilder();
+//        remoteServiceMap.keySet().forEach(k -> sb.append(remoteServiceMap.get(k).hello()));
+//
+//        for(String k: remoteServiceMap.keySet()) {
+//            log.info("在这里调用Hello服务");
+//            String s = remoteServiceMap.get(k).hello();
+//            sb.append(s);
+//        }
+//        return sb.toString();
 
-        for(String k: remoteServiceMap.keySet()) {
-            log.info("在这里调用Hello服务");
-            String s = remoteServiceMap.get(k).hello();
-            sb.append(s);
-        }
-        return sb.toString();
+        return null;
     }
 }

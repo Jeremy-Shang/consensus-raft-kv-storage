@@ -35,7 +35,7 @@ public class RaftStateMachine implements Runnable {
 
         taskMap.put(State.LISTENING_HEARTBEAT, new HeartBeatListenTask(heartBeatPipe));
         taskMap.put(State.ELECTION, new ElectionTask());
-        taskMap.put(State.HEAR_BEAT, new HearBeatBroadcastTask());
+//        taskMap.put(State.HEAR_BEAT, new HearBeatBroadcastTask());
 
         stateTransferRegistry();
     }

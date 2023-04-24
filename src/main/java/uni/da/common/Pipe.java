@@ -11,7 +11,6 @@ import java.io.PipedOutputStream;
 
 @Data
 @Slf4j
-@Builder
 public class Pipe {
 
     private String name;
