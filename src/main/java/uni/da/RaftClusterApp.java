@@ -8,6 +8,7 @@ import uni.da.node.impl.NodeImpl;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RaftClusterApp {
 
-    public static Node getNode() throws FileNotFoundException {
+    public static Node getNode() throws IOException {
         Node node;
 
         List<NodeConfig> nodeConfigList = new ArrayList<>();
@@ -63,7 +64,7 @@ public class RaftClusterApp {
     }
 
 
-    public static void main(String[] args) throws FileNotFoundException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException {
 
         RaftClusterApp.getNode().start();
 

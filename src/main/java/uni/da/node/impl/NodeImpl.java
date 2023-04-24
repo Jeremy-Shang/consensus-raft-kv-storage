@@ -11,23 +11,28 @@ import uni.da.node.ConsensusModule;
 import uni.da.node.LogModule;
 import uni.da.node.Node;
 import uni.da.node.StateMachineModule;
-import uni.da.remote.RaftRpcService;
-import uni.da.remote.impl.RaftRpcServiceImpl;
-import uni.da.status.Status;
 
+import uni.da.remote.RaftRpcService;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.*;
 
 /*
     Raft 集群节点实例
         - 每次启动节点，启动对应的线程实例
  */
-
 @Slf4j
 @Data
 public class NodeImpl implements Node {
+
+    enum Character {
+        Follower, Candidate, Leader
+
+    }
 
     // 单例节点
     private static NodeImpl nodeImpl = null;
@@ -36,7 +41,7 @@ public class NodeImpl implements Node {
     private NodeConfig nodeConfig;
 
     // 集群节点状态默认 Follower
-    private Status status = Status.Follower;
+    private Character status = Character.Follower;
 
     // Raft节点定义模块
     private ConsensusModule consensusModule;
@@ -45,9 +50,15 @@ public class NodeImpl implements Node {
 
     private StateMachineModule stateMachine;
 
+    // Raft节点线程池
+    private ExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
+
+    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+
 
     // 节点单例保证安全
-    private NodeImpl(NodeConfig config) {
+    private NodeImpl(NodeConfig config) throws IOException {
         // 设置节点属性
         this.nodeConfig = config;
         nodeConfig.setUuid(String.valueOf(UUID.randomUUID()));
@@ -56,7 +67,7 @@ public class NodeImpl implements Node {
         consensusModule = ConsensusModuleImpl.getInstance();
     }
 
-    public static synchronized NodeImpl getInstance(NodeConfig config) {
+    public static synchronized NodeImpl getInstance(NodeConfig config) throws IOException {
         if (NodeImpl.nodeImpl == null) {
             NodeImpl.nodeImpl = new NodeImpl(config);
         }
@@ -66,51 +77,25 @@ public class NodeImpl implements Node {
 
     public void start() throws InterruptedException {
         log.info("Node[{}] start at {}:{}.", status, nodeConfig.getIp(), nodeConfig.getPort());
-
         // TODO: 1. 启动心跳监听线程 2. 启动RPC监听 3.?
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                remoteServiceRegistry();
-            }
-        };
+        // 1. 服务注册
+        registry();
 
-
-        Runnable r0 = new Runnable() {
-            @Override
-            public void run() {
-                remoteClientRegistry();
-            }
-        };
-
-        Thread t1 = new Thread(r);
-
-        Thread t2 = new Thread(r0);
-
-        t1.start();
-        Thread.sleep(5000);
-        t2.start();
-        Thread.sleep(5000);
-
+        // 2.
 
         log.info(consensusModule.sayHi());
 
+        // 主线程阻塞
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             synchronized (this) {
                 this.notifyAll();
             }
         }));
 
-        log.info("gracefully wait");
-
-        // 当前线程在该对象上等待
-        // 在JVM终止的时候，调用上述notifyAll()唤醒当前线程
         synchronized (this) {
             this.wait();
         }
-
-
     }
 
     @Override
@@ -139,6 +124,33 @@ public class NodeImpl implements Node {
 
     }
 
+    /*
+        异步任务定义
+     */
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
+        RPC 加载
+     */
+
+    private void registry() {
+        Thread client = new Thread(() -> remoteClientRegistry());
+        Thread server = new Thread(() -> remoteServiceRegistry());
+
+        client.start();
+        server.start();
+    }
+
     private void remoteServiceRegistry() {
         // 服务提供者暴露服务配置
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
@@ -154,8 +166,8 @@ public class NodeImpl implements Node {
                 .service(service)
                 .start()
                 .await();
-
     }
+
     private void remoteClientRegistry(){
         log.info("加载集群远程服务...");
         System.out.println("加载远程服务");
@@ -163,7 +175,6 @@ public class NodeImpl implements Node {
         Map<String, RaftRpcService> remoteServiceMap = new HashMap<>();
 
         for(NodeConfig config: nodeConfigList) {
-
             // 连接注册中心配置 (不使用)
             RegistryConfig registry = new RegistryConfig();
             registry.setAddress("N/A");

@@ -1,10 +1,10 @@
 package uni.da.remote.impl;
 
 import uni.da.remote.RaftRpcService;
-import uni.da.remote.request.AppendEntryRequest;
-import uni.da.remote.request.RequestVoteRequest;
-import uni.da.remote.respond.AppendEntryResponse;
-import uni.da.remote.respond.RequestVoteResponse;
+import uni.da.entity.AppendEntryRequest;
+import uni.da.entity.RequestVoteRequest;
+import uni.da.entity.AppendEntryResponse;
+import uni.da.entity.RequestVoteResponse;
 
 public class RaftRpcServiceImpl implements RaftRpcService {
 
