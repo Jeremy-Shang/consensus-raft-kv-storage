@@ -95,14 +95,7 @@ public class NodeImpl implements Node {
 
 
 
-
-
-
         // 3. 启动对客户端线程
-        log.info(consensusModule.sayHi());
-
-
-
         /** 主线程阻塞*/
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             synchronized (this) {

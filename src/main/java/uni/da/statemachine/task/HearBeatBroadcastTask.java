@@ -17,6 +17,7 @@ public class HearBeatBroadcastTask extends AbstractRaftTask {
     @Override
     public EventType call() throws Exception {
         Map<Integer, RaftRpcService> remoteServiceMap = this.nodeParam.getRemoteServiceMap();
+        Thread.sleep(3000);
         // 广播心跳
         try {
             for(Integer id: remoteServiceMap.keySet()) {

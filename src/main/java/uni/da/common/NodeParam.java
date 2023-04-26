@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Data
 @ToString
-@Builder
 public class NodeParam {
 
     // 确保节点参数对象唯一
@@ -46,7 +45,7 @@ public class NodeParam {
 
     /** 节点动态参数 */
     // 当前任期
-    private AtomicInteger term;
+    private AtomicInteger term = new AtomicInteger();
 
     // 日志模块 （包含日志体）
     private volatile LogModule logModule;

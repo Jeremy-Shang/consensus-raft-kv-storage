@@ -9,6 +9,7 @@ import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.statemachine.fsm.StateMachine;
 import uni.da.statemachine.task.ElectionTask;
+import uni.da.statemachine.task.HearBeatBroadcastTask;
 import uni.da.statemachine.task.HeartBeatListenTask;
 import uni.da.statemachine.fsm.component.RaftState;
 
@@ -38,7 +39,8 @@ public class RaftStateMachine implements Runnable {
         taskMap.put(RaftState.LISTENING_HEARTBEAT, new HeartBeatListenTask(nodeParam));
 
         taskMap.put(RaftState.ELECTION, new ElectionTask(nodeParam));
-//        taskMap.put(State.HEAR_BEAT, new HearBeatBroadcastTask());
+
+        taskMap.put(RaftState.HEAR_BEAT, new HearBeatBroadcastTask(nodeParam));
 
         stateTransferRegistry();
     }
@@ -61,7 +63,7 @@ public class RaftStateMachine implements Runnable {
             EventType futureEventType = EventType.FAIL;
             try {
                 // 更新结果：成功/失败
-                futureEventType = future.get(3, TimeUnit.SECONDS);
+                futureEventType = future.get(10, TimeUnit.SECONDS);
             } catch (Exception e) {
 
             } finally {
