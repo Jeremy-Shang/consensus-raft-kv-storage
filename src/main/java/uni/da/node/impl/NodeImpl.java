@@ -7,18 +7,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.*;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import uni.da.common.Addr;
-import uni.da.common.NodeParam;
+import uni.da.node.NodeParam;
 import uni.da.node.ConsensusModule;
 import uni.da.node.LogModule;
 import uni.da.node.Node;
 import uni.da.node.StateMachineModule;
 
 import uni.da.remote.RaftRpcService;
+import uni.da.remote.impl.RaftRpcServiceImpl;
 import uni.da.statemachine.RaftStateMachine;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 /*
     Raft 集群节点实例
@@ -27,15 +29,6 @@ import java.util.Map;
 @Slf4j
 @Data
 public class NodeImpl implements Node {
-
-    enum Character {
-        Follower, Candidate, Leader
-
-    }
-
-
-    // 集群节点状态默认 Follower
-    private Character status = Character.Follower;
 
 
     // 单例节点
@@ -51,6 +44,10 @@ public class NodeImpl implements Node {
     private LogModule logModule;
 
     private StateMachineModule stateMachine;
+
+
+    // 通用同步工具
+    CountDownLatch countDownLatch;
 
 
     /**
@@ -84,10 +81,22 @@ public class NodeImpl implements Node {
      * @throws InterruptedException
      */
     public void start() throws InterruptedException, IOException {
-        log.info("Node[{}] start at {}:{}.", status, nodeParam.getAddr().getIp(), nodeParam.getAddr().getPort());
+        log.info("Node[{}] start at {}:{}.", nodeParam.getCharacter() , nodeParam.getAddr().getIp(), nodeParam.getAddr().getPort());
 
+
+
+        int memberNum = nodeParam.getClusterAddr().size();
         /** RPC注册*/
+        // 等待RPC集群接口注册完毕
+        countDownLatch = new CountDownLatch(memberNum);
+
         remoteRegistry();
+
+        // 阻塞, 直到集群注册完毕
+        countDownLatch.await();
+
+
+
 
         /** 启动状态机流转*/
         Thread stateMachine = new Thread(new RaftStateMachine(nodeParam));
@@ -95,17 +104,18 @@ public class NodeImpl implements Node {
 
 
 
-        // 3. 启动对客户端线程
-        /** 主线程阻塞*/
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            synchronized (this) {
-                this.notifyAll();
-            }
-        }));
 
-        synchronized (this) {
-            this.wait();
-        }
+        /** client */
+
+
+
+
+
+
+
+        // 主线程阻塞
+        stateMachine.join();
+
     }
 
 
@@ -129,7 +139,13 @@ public class NodeImpl implements Node {
      *  远程服务注册
      */
     private void remoteRegistry() {
-        Thread client = new Thread(() -> remoteClientRegistry());
+        Thread client = new Thread(() -> {
+            try {
+                remoteClientRegistry();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
         Thread server = new Thread(() -> remoteServiceRegistry());
 
         client.start();
@@ -137,10 +153,12 @@ public class NodeImpl implements Node {
     }
 
     private void remoteServiceRegistry() {
+        log.info("注册本地RPC服务");
         // 注册本节点的RPC服务
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
         service.setInterface(RaftRpcService.class);
-        service.setRef(consensusModule.getSelfRpcService());
+//        service.setRef(consensusModule.getSelfRpcService());
+        service.setRef(new RaftRpcServiceImpl(nodeParam));
         service.setTimeout(nodeParam.getTimeout());
 
         // 启动，暴露服务
@@ -153,9 +171,9 @@ public class NodeImpl implements Node {
                 .await();
     }
 
-    private void remoteClientRegistry(){
+    private void remoteClientRegistry() throws InterruptedException {
         log.info("加载集群远程服务...");
-        System.out.println("加载远程服务");
+
         Map<Integer, Addr> clusterAddr = nodeParam.getClusterAddr();
         Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
 
@@ -170,17 +188,25 @@ public class NodeImpl implements Node {
             reference.setInterface(RaftRpcService.class);
             reference.setUrl("dubbo://" + addr.getIp() + ":" + addr.getPort());
 
-            try {
-                // 获取远程节点提供服务接口
-                RaftRpcService raftRpcService = reference.get();
-                // 保存在 id: service 中
-                remoteServiceMap.put(id, raftRpcService);
-            } catch (Exception e) {
-                log.info("获取远程服务失败: {}", addr.toString());
+            for(int count=1; ; count++){
+                try {
+                    // 获取远程节点提供服务接口
+                    RaftRpcService raftRpcService = reference.get();
+                    // 保存在 id: service 中
+                    remoteServiceMap.put(id, raftRpcService);
+
+                    countDownLatch.countDown();
+                    break;
+                } catch (Exception e) {
+                    Thread.sleep(3000);
+                    log.info("获取远程服务失败: {} 尝试次数: {}", addr.toString(), count);
+                }
             }
         }
 
         this.nodeParam.setRemoteServiceMap(remoteServiceMap);
+
+        log.info("远程服务获取成功");
     }
 
 }

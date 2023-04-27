@@ -2,7 +2,7 @@ package uni.da;
 
 import lombok.extern.slf4j.Slf4j;
 import uni.da.common.Addr;
-import uni.da.common.NodeParam;
+import uni.da.node.NodeParam;
 import uni.da.node.Node;
 import uni.da.node.impl.NodeImpl;
 
@@ -68,21 +68,25 @@ public class RaftClusterApp {
 
         int port = Integer.parseInt(System.getProperty("port"));
 
+        int timeout = Integer.parseInt(System.getProperty("timeout"));
+
         String ip = "127.0.0.1";
 
         Map<Integer, Addr> clusterAddr = new HashMap<>();
-        clusterAddr.put(1, new Addr(ip, port));
-        clusterAddr.put(2, new Addr(ip, port + 1));
-        clusterAddr.put(3, new Addr(ip, port + 2));
-        clusterAddr.put(4, new Addr(ip, port + 3));
-        clusterAddr.put(5, new Addr(ip, port + 4));
+        clusterAddr.put(1, new Addr(ip, 6666));
+        clusterAddr.put(2, new Addr(ip, 6667));
+        clusterAddr.put(3, new Addr(ip, 6668));
+        clusterAddr.put(4, new Addr(ip, 6669));
+//        clusterAddr.put(5, new Addr(ip, 6670));
 
 
-        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
+//        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
+
+        NodeParam nodeParam = new NodeParam(id, "node"+id, new Addr(ip, port), timeout);
+
         nodeParam.setClusterAddr(clusterAddr);
 
         Node node = NodeImpl.getInstance(nodeParam);
-
 
         node.start();
     }

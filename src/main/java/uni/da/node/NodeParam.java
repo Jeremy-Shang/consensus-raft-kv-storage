@@ -1,14 +1,16 @@
-package uni.da.common;
+package uni.da.node;
 
 
 import lombok.*;
-import uni.da.node.LogModule;
+import uni.da.common.Addr;
+import uni.da.common.Pipe;
 import uni.da.remote.RaftRpcService;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /*
@@ -30,11 +32,12 @@ public class NodeParam {
     // 端口 + 地址
     private final Addr addr;
 
-    // 超时时长区间
+    // 超时时长，毫秒
     private final int timeout;
 
     // 集群中其他所有的节点的配置
     private Map<Integer, Addr> clusterAddr;
+
 
     // 心跳监听的阻塞式管道
     private Pipe pipe;
@@ -43,12 +46,25 @@ public class NodeParam {
     private Map<Integer, RaftRpcService> remoteServiceMap;
 
 
+    // 节点公共线程池
+    private ExecutorService nodeExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+
+
+
+
     /** 节点动态参数 */
     // 当前任期
     private AtomicInteger term = new AtomicInteger();
 
     // 日志模块 （包含日志体）
     private volatile LogModule logModule;
+
+    // 节点角色
+    private volatile Character character = Character.Follower;
+
+
+
+
 
 
     private NodeParam(int id, String name, Addr addr, int[] timeoutRange) throws IOException {
@@ -60,10 +76,22 @@ public class NodeParam {
         this.pipe = new Pipe("hearBeat");
     }
 
+
     public static NodeParam getInstance(int id, String name, Addr addr, int[] timeoutRange) throws IOException {
         if (nodeParam == null) {
             nodeParam = new NodeParam(id, name, addr, timeoutRange);
         }
         return nodeParam;
     }
+
+    public NodeParam(int id, String name, Addr addr, int timeout) throws IOException {
+        this.id = id;
+        this.name = name;
+        this.addr = addr;
+        this.timeout = timeout;
+
+        this.pipe = new Pipe("hearBeat");
+    }
+
+
 }

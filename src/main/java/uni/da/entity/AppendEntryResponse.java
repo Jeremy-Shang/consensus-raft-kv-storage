@@ -1,6 +1,8 @@
 package uni.da.entity;
 
-public class AppendEntryResponse {
+import java.io.Serializable;
+
+public class AppendEntryResponse implements Serializable {
     int term;
 
     boolean isSuccess;

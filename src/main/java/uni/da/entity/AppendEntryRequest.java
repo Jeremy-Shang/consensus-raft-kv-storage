@@ -5,10 +5,12 @@ import lombok.Data;
 import lombok.ToString;
 import uni.da.entity.Log.LogEntry;
 
+import java.io.Serializable;
+
 @Builder
 @ToString
 @Data
-public class AppendEntryRequest {
+public class AppendEntryRequest implements Serializable {
 
     int term;
 

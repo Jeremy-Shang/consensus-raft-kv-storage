@@ -16,4 +16,6 @@ public class LogEntry {
     int key;
 
     int value;
+
+    LogBody body;
 }

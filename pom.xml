@@ -73,7 +73,6 @@
 
     <build>
         <plugins>
-
 <!--            Maven插件，打包所有依赖项-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -95,11 +94,7 @@
                     </execution>
                 </executions>
             </plugin>
-            
         </plugins>
     </build>
-
-
-
 
 </project>

@@ -6,11 +6,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.ToString;
 
+import java.io.Serializable;
+
 @Data
 @AllArgsConstructor
 @Builder
 @ToString
-public class RequestVoteRequest {
+public class RequestVoteRequest implements Serializable {
     int term;
 
     int candidateId;

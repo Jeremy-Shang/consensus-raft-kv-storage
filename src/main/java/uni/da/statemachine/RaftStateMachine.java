@@ -2,7 +2,7 @@ package uni.da.statemachine;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import uni.da.common.NodeParam;
+import uni.da.node.NodeParam;
 import uni.da.statemachine.fsm.impl.StateMachineFactory;
 import uni.da.statemachine.fsm.component.Context;
 import uni.da.statemachine.fsm.component.Event;
@@ -22,8 +22,6 @@ import java.util.concurrent.*;
 public class RaftStateMachine implements Runnable {
 
     private Map<RaftState, Callable<EventType>> taskMap = new ConcurrentHashMap<>();
-
-    private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     private StateMachine<RaftState, EventType, Event> stateMachine;
 
@@ -57,15 +55,19 @@ public class RaftStateMachine implements Runnable {
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
         while (!Thread.currentThread().isInterrupted()) {
-            log.info("curr state: {}, curr task: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName());
+            log.info("当前状态: {}, 当前任务: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName());
             // 提交当前任务到线程池
-            Future<EventType> future = executorService.submit(currTask);
+            Future<EventType> future = nodeParam.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
             try {
                 // 更新结果：成功/失败
-                futureEventType = future.get(10, TimeUnit.SECONDS);
-            } catch (Exception e) {
-
+                futureEventType = future.get(nodeParam.getTimeout(), TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                log.info("======> task timeout: " + nodeParam.getTimeout());
+            } catch (InterruptedException e) {
+                log.info("======> task interrupted");
+            } catch (ExecutionException e) {
+                log.info("======> task executionException");
             } finally {
                 log.info("======> task result: {}", futureEventType.toString());
                 // 从状态机获得下一个任务
