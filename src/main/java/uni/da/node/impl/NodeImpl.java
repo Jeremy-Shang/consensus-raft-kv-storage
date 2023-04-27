@@ -157,7 +157,6 @@ public class NodeImpl implements Node {
         // 注册本节点的RPC服务
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
         service.setInterface(RaftRpcService.class);
-//        service.setRef(consensusModule.getSelfRpcService());
         service.setRef(new RaftRpcServiceImpl(nodeParam));
         service.setTimeout(nodeParam.getTimeout());
 
@@ -181,10 +180,8 @@ public class NodeImpl implements Node {
             Addr addr = clusterAddr.get(id);
             // 连接注册中心配置 (不使用)
             RegistryConfig registry = new RegistryConfig();
-            registry.setAddress("N/A");
 
             ReferenceConfig<RaftRpcService> reference = new ReferenceConfig<RaftRpcService>();
-            reference.setRegistry(registry);
             reference.setInterface(RaftRpcService.class);
             reference.setUrl("dubbo://" + addr.getIp() + ":" + addr.getPort());
 

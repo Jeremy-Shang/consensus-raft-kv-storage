@@ -82,6 +82,12 @@ public class RaftClusterApp {
 
 //        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
 
+        log.info("info");
+        log.debug("debug");
+        log.error("error");
+        log.trace("trace");
+        log.warn("warn");
+
         NodeParam nodeParam = new NodeParam(id, "node"+id, new Addr(ip, port), timeout);
 
         nodeParam.setClusterAddr(clusterAddr);
@@ -89,6 +95,8 @@ public class RaftClusterApp {
         Node node = NodeImpl.getInstance(nodeParam);
 
         node.start();
+
+
     }
 
 }
