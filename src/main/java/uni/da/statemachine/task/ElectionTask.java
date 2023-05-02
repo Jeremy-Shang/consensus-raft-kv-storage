@@ -1,25 +1,22 @@
 package uni.da.statemachine.task;
 
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.C;
-import uni.da.entity.AppendEntryRequest;
 import uni.da.entity.RequestVoteRequest;
 import uni.da.entity.RequestVoteResponse;
 import uni.da.node.Character;
-import uni.da.node.NodeParam;
+import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.util.LogUtil;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class ElectionTask extends AbstractRaftTask {
 
-    public ElectionTask(NodeParam nodeParam) {
-        super(nodeParam);
+    public ElectionTask(ConsensusState consensusState) {
+        super(consensusState);
     }
 
     /**
@@ -33,27 +30,27 @@ public class ElectionTask extends AbstractRaftTask {
     @Override
     public EventType call() throws Exception {
         // 节点增加自己任期，并进入候选人状态
-        nodeParam.getTerm().incrementAndGet();
-        nodeParam.setCharacter(Character.Candidate);
+        consensusState.getTerm().incrementAndGet();
+        consensusState.setCharacter(Character.Candidate);
 
-        LogUtil.printBoxedMessage(nodeParam.getName() + " start election !");
+        LogUtil.printBoxedMessage(consensusState.getName() + " start election !");
 
-        Map<Integer, RaftRpcService> remoteServiceMap = this.nodeParam.getRemoteServiceMap();
+        Map<Integer, RaftRpcService> remoteServiceMap = this.consensusState.getRemoteServiceMap();
 
         // 过半数票
-        CountDownLatch votes = new CountDownLatch((int) Math.ceil(nodeParam.getClusterAddr().size() / 2) + 1);
+        CountDownLatch votes = new CountDownLatch((int) Math.ceil(consensusState.getClusterAddr().size() / 2) + 1);
 
         // 请求所有人投票，包括自己
         for(Integer id: remoteServiceMap.keySet()) {
             RequestVoteRequest requestVoteRequest = RequestVoteRequest.builder()
-                    .term(nodeParam.getTerm().get())
-                    .candidateId(nodeParam.getId())
-                    .lastLogIndex(nodeParam.getLogModule().getLastLogIndex())
-                    .lastLogTerm(nodeParam.getLogModule().getLastLogTerm())
+                    .term(consensusState.getTerm().get())
+                    .candidateId(consensusState.getId())
+                    .lastLogIndex(consensusState.getLogModule().getLastLogIndex())
+                    .lastLogTerm(consensusState.getLogModule().getLastLogTerm())
                     .build();
 
             // 并发执行投票任务
-            nodeParam.getNodeExecutorService().execute(new Runnable() {
+            consensusState.getNodeExecutorService().execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -62,7 +59,7 @@ public class ElectionTask extends AbstractRaftTask {
                             votes.countDown();
                         }
                     } catch (Exception e) {
-                        log.error("发送请求投票消息失败：{} -> {} ", nodeParam.getId(), id);
+                        log.error("发送请求投票消息失败：{} -> {} ", consensusState.getId(), id);
 //                        e.printStackTrace();
                     }
                 }
@@ -73,12 +70,12 @@ public class ElectionTask extends AbstractRaftTask {
         votes.await();
 
         // // 如果收到别的心跳，即被变更了角色，则失败
-        if (nodeParam.getCharacter() != Character.Candidate) {
+        if (consensusState.getCharacter() != Character.Candidate) {
             return EventType.FAIL;
         }
-        LogUtil.printBoxedMessage(nodeParam.getName() + " become leader !");
+        LogUtil.printBoxedMessage(consensusState.getName() + " become leader !");
 
-        nodeParam.setCharacter(Character.Leader);
+        consensusState.setCharacter(Character.Leader);
 
         return EventType.SUCCESS;
 

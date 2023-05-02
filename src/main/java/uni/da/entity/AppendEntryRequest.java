@@ -20,7 +20,7 @@ public class AppendEntryRequest implements Serializable {
 
     int preLogTerm;
 
-    LogEntry[] logEntries;
+    LogEntry logEntry;
 
     int leaderCommit;
 

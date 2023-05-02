@@ -2,7 +2,7 @@ package uni.da;
 
 import lombok.extern.slf4j.Slf4j;
 import uni.da.common.Addr;
-import uni.da.node.NodeParam;
+import uni.da.node.ConsensusState;
 import uni.da.node.Node;
 import uni.da.node.impl.NodeImpl;
 
@@ -82,17 +82,12 @@ public class RaftClusterApp {
 
 //        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
 
-        log.info("info");
-        log.debug("debug");
-        log.error("error");
-        log.trace("trace");
-        log.warn("warn");
 
-        NodeParam nodeParam = new NodeParam(id, "node"+id, new Addr(ip, port), timeout);
+        ConsensusState consensusState = new ConsensusState(id, "node"+id, new Addr(ip, port), timeout);
 
-        nodeParam.setClusterAddr(clusterAddr);
+        consensusState.setClusterAddr(clusterAddr);
 
-        Node node = NodeImpl.getInstance(nodeParam);
+        Node node = NodeImpl.getInstance(consensusState);
 
         node.start();
 

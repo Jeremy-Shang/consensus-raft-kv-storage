@@ -3,14 +3,14 @@ package uni.da.statemachine.task;
 
 import lombok.extern.slf4j.Slf4j;
 import uni.da.node.Character;
-import uni.da.node.NodeParam;
+import uni.da.node.ConsensusState;
 import uni.da.statemachine.fsm.component.EventType;
 
 @Slf4j
-public class HeartBeatListenTask extends AbstractRaftTask{
+public class ListeningTask extends AbstractRaftTask{
 
-    public HeartBeatListenTask(NodeParam nodeParam) {
-        super(nodeParam);
+    public ListeningTask(ConsensusState consensusState) {
+        super(consensusState);
     }
 
     /**
@@ -21,9 +21,9 @@ public class HeartBeatListenTask extends AbstractRaftTask{
     @Override
     public EventType call() throws Exception {
         try {
-            int signal = this.nodeParam.getPipe().getInputStream().read();
+            int signal = this.consensusState.getPipe().getInputStream().read();
             // 监听到心跳，角色变为Follower
-            nodeParam.setCharacter(Character.Follower);
+            consensusState.setCharacter(Character.Follower);
             return EventType.SUCCESS;
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,6 +1,6 @@
 package uni.da.remote;
 
-import uni.da.node.NodeParam;
+import uni.da.node.ConsensusState;
 import uni.da.entity.AppendEntryRequest;
 import uni.da.entity.RequestVoteRequest;
 import uni.da.entity.AppendEntryResponse;
@@ -16,5 +16,5 @@ public interface RaftRpcService {
 
     public AppendEntryResponse appendEntry(AppendEntryRequest request);
 
-    public void sayHi(NodeParam config);
+    public void sayHi(ConsensusState config);
 }

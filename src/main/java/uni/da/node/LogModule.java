@@ -1,6 +1,9 @@
 package uni.da.node;
 
+import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
+
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public interface LogModule extends RaftModule{
 
@@ -12,9 +15,15 @@ public interface LogModule extends RaftModule{
 
     public int getPrevLogTerm();
 
-    public LogEntry[] getLogEntries();
-
-    public LogEntry[] getEmptyLogEntries();
+    public LogEntry getEmptyLogEntry();
 
     public int getMaxCommit();
+
+    public boolean isPresent(int index);
+
+    public void append(LogEntry logEntry);
+
+    public CopyOnWriteArrayList<LogEntry> getLogEntries();
+
+    public LogEntry getEntryByIndex(int index);
 }

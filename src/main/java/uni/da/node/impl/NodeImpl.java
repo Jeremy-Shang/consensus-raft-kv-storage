@@ -7,11 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.*;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import uni.da.common.Addr;
-import uni.da.node.NodeParam;
-import uni.da.node.ConsensusModule;
+import uni.da.node.ConsensusState;
 import uni.da.node.LogModule;
 import uni.da.node.Node;
-import uni.da.node.StateMachineModule;
 
 import uni.da.remote.RaftRpcService;
 import uni.da.remote.impl.RaftRpcServiceImpl;
@@ -35,15 +33,12 @@ public class NodeImpl implements Node {
     private static NodeImpl nodeImpl = null;
 
     // 节点配置信息
-    private NodeParam nodeParam;
+    private ConsensusState consensusState;
 
 
     // Raft节点定义模块
-    private ConsensusModule consensusModule;
 
     private LogModule logModule;
-
-    private StateMachineModule stateMachine;
 
 
     // 通用同步工具
@@ -52,24 +47,24 @@ public class NodeImpl implements Node {
 
     /**
      * 单例构造函数
-     * @param nodeParam
+     * @param consensusState
      * @throws IOException
      */
-    private NodeImpl(NodeParam nodeParam) throws IOException {
+    private NodeImpl(ConsensusState consensusState) throws IOException {
 
-        this.nodeParam = nodeParam;
+        this.consensusState = consensusState;
 
         /** 设置日志体，恢复当前任期号码*/
 
-        this.nodeParam.setLogModule(new LogModuleImpl(100));
+        this.consensusState.setLogModule(new LogModuleImpl(100));
 
-        this.nodeParam.getTerm().getAndSet(this.nodeParam.getLogModule().getLastLogIndex());
+        this.consensusState.getTerm().getAndSet(this.consensusState.getLogModule().getLastLogIndex());
 
     }
 
-    public static synchronized NodeImpl getInstance(NodeParam nodeParam) throws IOException {
+    public static synchronized NodeImpl getInstance(ConsensusState consensusState) throws IOException {
         if (NodeImpl.nodeImpl == null) {
-            NodeImpl.nodeImpl = new NodeImpl(nodeParam);
+            NodeImpl.nodeImpl = new NodeImpl(consensusState);
         }
 
         return NodeImpl.nodeImpl;
@@ -81,11 +76,10 @@ public class NodeImpl implements Node {
      * @throws InterruptedException
      */
     public void start() throws InterruptedException, IOException {
-        log.info("Node[{}] start at {}:{}.", nodeParam.getCharacter() , nodeParam.getAddr().getIp(), nodeParam.getAddr().getPort());
+        log.info("Node[{}] start at {}:{}.", consensusState.getCharacter() , consensusState.getAddr().getIp(), consensusState.getAddr().getPort());
 
 
-
-        int memberNum = nodeParam.getClusterAddr().size();
+        int memberNum = consensusState.getClusterAddr().size();
         /** RPC注册*/
         // 等待RPC集群接口注册完毕
         countDownLatch = new CountDownLatch(memberNum);
@@ -99,15 +93,13 @@ public class NodeImpl implements Node {
 
 
         /** 启动状态机流转*/
-        Thread stateMachine = new Thread(new RaftStateMachine(nodeParam));
+        Thread stateMachine = new Thread(new RaftStateMachine(consensusState));
         stateMachine.start();
 
 
 
 
         /** client */
-
-
 
 
 
@@ -157,14 +149,14 @@ public class NodeImpl implements Node {
         // 注册本节点的RPC服务
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
         service.setInterface(RaftRpcService.class);
-        service.setRef(new RaftRpcServiceImpl(nodeParam));
-        service.setTimeout(nodeParam.getTimeout());
+        service.setRef(new RaftRpcServiceImpl(consensusState));
+        service.setTimeout(consensusState.getTimeout());
 
         // 启动，暴露服务
         DubboBootstrap.getInstance()
                 .application("first-dubbo-provider")
                 .registry(new RegistryConfig("N/A"))
-                .protocol(new ProtocolConfig("dubbo", nodeParam.getAddr().getPort()))
+                .protocol(new ProtocolConfig("dubbo", consensusState.getAddr().getPort()))
                 .service(service)
                 .start()
                 .await();
@@ -173,7 +165,7 @@ public class NodeImpl implements Node {
     private void remoteClientRegistry() throws InterruptedException {
         log.info("加载集群远程服务...");
 
-        Map<Integer, Addr> clusterAddr = nodeParam.getClusterAddr();
+        Map<Integer, Addr> clusterAddr = consensusState.getClusterAddr();
         Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
 
         for(Integer id: clusterAddr.keySet()) {
@@ -201,7 +193,7 @@ public class NodeImpl implements Node {
             }
         }
 
-        this.nodeParam.setRemoteServiceMap(remoteServiceMap);
+        this.consensusState.setRemoteServiceMap(remoteServiceMap);
 
         log.info("远程服务获取成功");
     }

@@ -2,15 +2,15 @@ package uni.da.statemachine;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import uni.da.node.NodeParam;
+import uni.da.node.ConsensusState;
 import uni.da.statemachine.fsm.impl.StateMachineFactory;
 import uni.da.statemachine.fsm.component.Context;
 import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.statemachine.fsm.StateMachine;
 import uni.da.statemachine.task.ElectionTask;
-import uni.da.statemachine.task.HearBeatBroadcastTask;
-import uni.da.statemachine.task.HeartBeatListenTask;
+import uni.da.statemachine.task.BroadcastTask;
+import uni.da.statemachine.task.ListeningTask;
 import uni.da.statemachine.fsm.component.RaftState;
 
 import java.io.IOException;
@@ -27,18 +27,18 @@ public class RaftStateMachine implements Runnable {
 
     private RaftState raftState = RaftState.LISTENING_HEARTBEAT;
 
-    private NodeParam nodeParam;
+    private ConsensusState consensusState;
 
 
-    public RaftStateMachine(NodeParam nodeParam) throws IOException {
+    public RaftStateMachine(ConsensusState consensusState) throws IOException {
 
-        this.nodeParam = nodeParam;
+        this.consensusState = consensusState;
 
-        taskMap.put(RaftState.LISTENING_HEARTBEAT, new HeartBeatListenTask(nodeParam));
+        taskMap.put(RaftState.LISTENING_HEARTBEAT, new ListeningTask(consensusState));
 
-        taskMap.put(RaftState.ELECTION, new ElectionTask(nodeParam));
+        taskMap.put(RaftState.ELECTION, new ElectionTask(consensusState));
 
-        taskMap.put(RaftState.HEAR_BEAT, new HearBeatBroadcastTask(nodeParam));
+        taskMap.put(RaftState.HEAR_BEAT, new BroadcastTask(consensusState));
 
         stateTransferRegistry();
     }
@@ -57,13 +57,13 @@ public class RaftStateMachine implements Runnable {
         while (!Thread.currentThread().isInterrupted()) {
             log.info("当前状态: {}, 当前任务: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName());
             // 提交当前任务到线程池
-            Future<EventType> future = nodeParam.getNodeExecutorService().submit(currTask);
+            Future<EventType> future = consensusState.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
             try {
                 // 更新结果：成功/失败
-                futureEventType = future.get(nodeParam.getTimeout(), TimeUnit.MILLISECONDS);
+                futureEventType = future.get(consensusState.getTimeout(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                log.info("======> task timeout: " + nodeParam.getTimeout());
+                log.info("======> task timeout: " + consensusState.getTimeout());
             } catch (InterruptedException e) {
                 log.info("======> task interrupted");
             } catch (ExecutionException e) {

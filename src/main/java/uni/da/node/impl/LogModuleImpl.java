@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.LogModule;
 
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+
 
 @Data
 @RequiredArgsConstructor
@@ -14,8 +17,10 @@ public class LogModuleImpl implements LogModule {
 
     @NonNull private int maximumSize;
 
-    private LogEntry[] logEntries;
 
+    // 日志队列
+    private CopyOnWriteArrayList<LogEntry> logEntries;
+    
     @Override
     public void start() {
 
@@ -24,6 +29,19 @@ public class LogModuleImpl implements LogModule {
     @Override
     public void stop() {
 
+    }
+
+    @Override
+    public CopyOnWriteArrayList<LogEntry> getLogEntries() {
+        return logEntries;
+    }
+
+    @Override
+    public LogEntry getEntryByIndex(int index) {
+        return this.logEntries.stream()
+                .filter(e -> e.getLogIndex() == index)
+                .collect(Collectors.toList())
+                .get(0);
     }
 
     @Override
@@ -46,18 +64,26 @@ public class LogModuleImpl implements LogModule {
         return 0;
     }
 
-    @Override
-    public LogEntry[] getLogEntries() {
-        return new LogEntry[0];
-    }
 
     @Override
-    public LogEntry[] getEmptyLogEntries() {
-        return new LogEntry[0];
+    public LogEntry getEmptyLogEntry() {
+        return null;
     }
 
     @Override
     public int getMaxCommit() {
         return 0;
     }
+
+    @Override
+    public boolean isPresent(int index) {
+        return false;
+    }
+
+    @Override
+    public void append(LogEntry logEntry) {
+
+    }
+
+
 }
