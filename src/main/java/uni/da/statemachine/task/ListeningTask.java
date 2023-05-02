@@ -20,6 +20,7 @@ public class ListeningTask extends AbstractRaftTask{
      */
     @Override
     public EventType call() throws Exception {
+
         try {
             int signal = this.consensusState.getPipe().getInputStream().read();
             // 监听到心跳，角色变为Follower

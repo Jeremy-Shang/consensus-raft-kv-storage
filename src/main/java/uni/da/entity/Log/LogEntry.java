@@ -8,15 +8,10 @@ import lombok.Data;
 @Data
 @Builder
 @AllArgsConstructor
-
 public class LogEntry {
     int term;
 
     int logIndex;
-
-    int key;
-
-    int value;
 
     LogBody body;
 }

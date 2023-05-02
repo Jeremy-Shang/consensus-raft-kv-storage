@@ -2,6 +2,8 @@ package uni.da.remote.impl;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import uni.da.entity.Log.LogBody;
+import uni.da.entity.Log.LogEntry;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
@@ -111,20 +113,31 @@ public class RaftRpcServiceImpl implements RaftRpcService {
 
     public String handleClientRequest(int key, String val) {
 
-        // 1. TODO redirect
+        // 1. TODO redirect to leader
         if (consensusState.getCharacter() != Character.Leader) {
             return "";
         }
 
-        // 2. 本节点中插入指令
+        // 2. 当前leader中直接插入指令
+        LogEntry logEntry = LogEntry.builder()
+                .term(consensusState.getTerm().get())
+                .logIndex(consensusState.getLogModule().getLastLogIndex() + 1)
+                .body(new LogBody(key ,val))
+                .build();
 
-
+        consensusState.getLogModule().append(logEntry);
 
         // 3. 发起消息广播
+        consensusState.getNodeExecutorService().submit(new BroadcastTask(consensusState));
 
 
 
-        // 4. 收到半数/没收到半数
+
+
+
+
+
+        // 4. 收到半数/没收到半数, 需要进行commit
 
 
         return null;

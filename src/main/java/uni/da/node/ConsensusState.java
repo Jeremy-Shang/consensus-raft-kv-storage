@@ -68,9 +68,27 @@ public class ConsensusState {
     // 作为leader，下一个该给节点发送什么index日志
     private Map<Integer, Integer> nextIndex = new HashMap<>();
 
+
     // 作为leader，对面节点目前复制到的最高日志信息
     private Map<Integer, Integer> matchIndex = new HashMap<>();
 
+
+
+    public ConsensusState(int id, String name, Addr addr, int timeout) throws IOException {
+        this.id = id;
+        this.name = name;
+        this.addr = addr;
+        this.timeout = timeout;
+
+        this.pipe = new Pipe("hearBeat");
+
+        // 初始状态下
+        clusterAddr.forEach((k,v) -> {
+            nextIndex.put(k, 1);
+            matchIndex.put(k, 0);
+        });
+
+    }
 
 
 
@@ -79,6 +97,9 @@ public class ConsensusState {
         this.name = name;
         this.addr = addr;
         this.timeout = new Random().nextInt(timeoutRange[1] - timeoutRange[0] + 1) + timeoutRange[0];
+
+        nextIndex.replaceAll((k, v) -> 1);
+        matchIndex.replaceAll((k, v) -> 0);
 
         this.pipe = new Pipe("hearBeat");
     }
@@ -90,13 +111,5 @@ public class ConsensusState {
         return consensusState;
     }
 
-    public ConsensusState(int id, String name, Addr addr, int timeout) throws IOException {
-        this.id = id;
-        this.name = name;
-        this.addr = addr;
-        this.timeout = timeout;
-
-        this.pipe = new Pipe("hearBeat");
-    }
 
 }

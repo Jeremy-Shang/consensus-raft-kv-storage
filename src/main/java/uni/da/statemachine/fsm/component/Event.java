@@ -11,7 +11,12 @@ import lombok.ToString;
 public class Event {
     public EventType type;
 
+    public enum Type {
+        FAIL, SUCCESS;
+    }
+
     public Event(EventType type) {
         type = type;
+
     }
 }

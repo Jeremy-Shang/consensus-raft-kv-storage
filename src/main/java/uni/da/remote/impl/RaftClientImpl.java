@@ -1,6 +1,7 @@
 package uni.da.remote.impl;
 
 import uni.da.remote.RaftClient;
+import uni.da.statemachine.fsm.component.Event;
 
 public class RaftClientImpl implements RaftClient {
 
@@ -12,5 +13,6 @@ public class RaftClientImpl implements RaftClient {
     @Override
     public String get(int key) {
         return null;
+
     }
 }
