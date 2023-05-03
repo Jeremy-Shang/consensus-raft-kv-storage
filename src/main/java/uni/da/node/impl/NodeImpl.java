@@ -78,7 +78,6 @@ public class NodeImpl implements Node {
     public void start() throws InterruptedException, IOException {
         log.info("Node[{}] start at {}:{}.", consensusState.getCharacter() , consensusState.getAddr().getIp(), consensusState.getAddr().getPort());
 
-
         int memberNum = consensusState.getClusterAddr().size();
         /** RPC注册*/
         // 等待RPC集群接口注册完毕
@@ -92,12 +91,13 @@ public class NodeImpl implements Node {
 
 
 
+
+
+
+
         /** 启动状态机流转*/
         Thread stateMachine = new Thread(new RaftStateMachine(consensusState));
         stateMachine.start();
-
-
-
 
         /** client */
 

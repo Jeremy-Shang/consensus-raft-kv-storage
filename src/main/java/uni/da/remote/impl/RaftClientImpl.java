@@ -1,16 +1,20 @@
 package uni.da.remote.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.var;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import uni.da.common.Addr;
 import uni.da.entity.ClientRequest;
 import uni.da.entity.ClientResponse;
+import uni.da.entity.Log.LogEntry;
 import uni.da.remote.RaftClient;
 import uni.da.remote.RaftRpcService;
 import uni.da.statemachine.fsm.component.Event;
+import uni.da.util.LogUtil;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
@@ -19,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 
 @Slf4j
 public class RaftClientImpl implements RaftClient {
-
 
     // TODO 节点地址暂时写死
     Map<Integer, Addr> clusterAddr = new HashMap<>();
@@ -39,8 +42,9 @@ public class RaftClientImpl implements RaftClient {
         registry();
 
         countDownLatch.await();
-
     }
+
+
 
 
     public void ClientPrompt() throws ExecutionException, InterruptedException {
@@ -65,12 +69,22 @@ public class RaftClientImpl implements RaftClient {
     }
 
 
+
+
+
     @Override
     public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException {
-        // TODO template 暂时只往默认leader 发送信息
+        // 1. TODO template 暂时只往默认leader 发送信息
         RaftRpcService service = remoteServiceMap.get(1);
 
-        ClientResponse response = service.handleClient(request);
+        // 2. Client 发送消息
+        ClientResponse<Map<Integer, List<LogEntry>>> response = service.handleClient(request);
+
+        Map<Integer, List<LogEntry>> data = response.getData();
+
+        // 3. 打印数据
+
+        LogUtil.printTable(data);
 
         return null;
     }

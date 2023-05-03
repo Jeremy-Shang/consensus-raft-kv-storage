@@ -19,7 +19,6 @@ public class LogModuleImpl implements LogModule {
 
     @NonNull private int maximumSize;
 
-
     // 日志队列
     private CopyOnWriteArrayList<LogEntry> logEntries;
     
@@ -58,12 +57,17 @@ public class LogModuleImpl implements LogModule {
 
     @Override
     public int getLastLogIndex() {
-        return 0;
+
+
+
+        return logEntries.stream().map(e -> e.getLogIndex())
+                .max((a, b) -> b - a).get();
     }
 
     @Override
     public int getLastLogTerm() {
-        return 0;
+
+        return logEntries.get(getLastLogIndex()).getTerm();
     }
 
     @Override
@@ -84,6 +88,7 @@ public class LogModuleImpl implements LogModule {
 
     @Override
     public int getMaxCommit() {
+        // TODO
         return 0;
     }
 

@@ -1,8 +1,10 @@
 package uni.da.remote;
 
 import uni.da.entity.*;
+import uni.da.entity.Log.LogEntry;
 import uni.da.node.ConsensusState;
 
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 
 
@@ -18,4 +20,6 @@ public interface RaftRpcService {
     public void sayHi(ConsensusState config);
 
     public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException;
+
+    public CopyOnWriteArrayList<LogEntry> gatherClusterLogEntries();
 }

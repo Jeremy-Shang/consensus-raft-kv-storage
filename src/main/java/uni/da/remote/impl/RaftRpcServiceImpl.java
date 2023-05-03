@@ -14,7 +14,10 @@ import uni.da.task.BroadcastTask;
 import uni.da.util.LogUtil;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -137,10 +140,17 @@ public class RaftRpcServiceImpl implements RaftRpcService {
 
     @Override
     public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException {
+
+        // 1. TODO get request
+        if (request.getTYPE() == 1) {
+            return null;
+        }
+
+
         int key = request.getKey();
         String val = request.getVal();
 
-        // 1. TODO redirect to leader
+        // 2. TODO 重定向到leader
         if (consensusState.getCharacter() != Character.Leader) {
             return null;
         }
@@ -154,7 +164,6 @@ public class RaftRpcServiceImpl implements RaftRpcService {
 
         consensusState.getLogModule().append(logEntry);
 
-
         // 3. 发起消息广播
         Future<EventType> future =  consensusState.getNodeExecutorService().submit(new BroadcastTask(consensusState));
 
@@ -164,8 +173,36 @@ public class RaftRpcServiceImpl implements RaftRpcService {
             log.error("任务失败");
         }
 
+
+        // 4. 客户端回显数据
+        Map<Integer, List<LogEntry>> clientEcho = new HashMap<>();
+
+        for(Integer k: consensusState.getRemoteServiceMap().keySet()) {
+
+            RaftRpcService s = consensusState.getRemoteServiceMap().get(k);
+
+            CopyOnWriteArrayList<LogEntry> logEntries = null;
+            try {
+                logEntries = s.gatherClusterLogEntries();
+            } catch (Exception e) {
+                log.error("获取节点日志失败");
+            }
+            clientEcho.put(k, new ArrayList<>(logEntries));
+        }
+
+
         // 4. TODO 客户端需要回显
-        return ClientResponse.success("any");
+        return ClientResponse.success(clientEcho);
+    }
+
+
+    /**
+     * 客户端回显，获取所有节点log状态
+     * @return
+     */
+    @Override
+    public CopyOnWriteArrayList<LogEntry> gatherClusterLogEntries() {
+        return consensusState.getLogModule().getLogEntries();
     }
 
 
