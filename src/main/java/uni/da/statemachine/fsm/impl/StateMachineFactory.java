@@ -1,6 +1,5 @@
 package uni.da.statemachine.fsm.impl;
 
-import lombok.var;
 import uni.da.statemachine.fsm.StateMachine;
 import uni.da.statemachine.fsm.Transition;
 

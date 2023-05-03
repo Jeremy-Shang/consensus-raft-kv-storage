@@ -8,7 +8,7 @@ import uni.da.statemachine.fsm.component.Context;
 import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.statemachine.fsm.StateMachine;
-import uni.da.task.ElectionTask;
+import uni.da.task.election.ElectionTask;
 import uni.da.task.BroadcastTask;
 import uni.da.task.ListeningTask;
 import uni.da.statemachine.fsm.component.RaftState;
@@ -55,24 +55,30 @@ public class RaftStateMachine implements Runnable {
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
         while (!Thread.currentThread().isInterrupted()) {
-            log.info("当前状态: {}, 当前任务: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName());
+            log.info("当前状态: {}, 当前任务: {}, 当前任期: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getTerm());
             // 提交当前任务到线程池
             Future<EventType> future = consensusState.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
             try {
-                // 更新结果：成功/失败
+                // 更新结果：成功/失败/超时
                 futureEventType = future.get(consensusState.getTimeout(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                log.info("======> task timeout: " + consensusState.getTimeout());
+                log.info("======> task {} timeout at: {}ms term {}", currTask.getClass().getName(), consensusState.getTimeout(), consensusState.getTerm());
+
+                futureEventType = EventType.TIME_OUT;
                 e.printStackTrace();
             } catch (InterruptedException e) {
-                log.info("======> task interrupted");
+                log.info("======> task {} interrupted term{}", currTask.getClass().getName(), consensusState.getTerm());
+
+                futureEventType = EventType.FAIL;
                 e.printStackTrace();
             } catch (ExecutionException e) {
-                log.info("======> task executionException");
+                log.info("======> task {} execution fail term{}", currTask.getClass().getName(), consensusState.getTerm());
+
+                futureEventType = EventType.FAIL;
                 e.printStackTrace();
             } finally {
-                log.info("======> task result: {}", futureEventType.toString());
+//                log.info("======> task result: {}", futureEventType.toString());
                 // 从状态机获得下一个任务
                 this.raftState = stateMachine.doTransition(futureEventType, new Event(futureEventType));
                 currTask = taskMap.get(this.raftState);
@@ -95,6 +101,12 @@ public class RaftStateMachine implements Runnable {
         stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.FAIL, (o, e ) -> {
             return RaftState.ELECTION;
         });
+        // 心跳监听 -> 超时 = 选举
+        stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.ELECTION;
+        });
+
+
         // 选举 -> 成功 = 心跳
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.HEAR_BEAT;
@@ -103,16 +115,26 @@ public class RaftStateMachine implements Runnable {
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.LISTENING_HEARTBEAT, EventType.FAIL, (o, e ) -> {
             return RaftState.LISTENING_HEARTBEAT;
         });
+        // 选举 -> 超时 = 选举
+        stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.LISTENING_HEARTBEAT, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.LISTENING_HEARTBEAT;
+        });
+
+
 
         // 心跳 -> 成功 = 心跳
         stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.HEAR_BEAT;
         });
-
-        // 心跳 -> 失败 = 监听心跳
+        // 心跳 -> 失败 = 继续心跳
         stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.LISTENING_HEARTBEAT, EventType.FAIL, (o, e ) -> {
             return RaftState.LISTENING_HEARTBEAT;
         });
+        // 心跳 -> 超时 = 继续心跳
+        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.LISTENING_HEARTBEAT, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.LISTENING_HEARTBEAT;
+        });
+
 
         // 加入初始状态
         stateMachine = stateMachineFactory.make(new Context(), this.raftState);

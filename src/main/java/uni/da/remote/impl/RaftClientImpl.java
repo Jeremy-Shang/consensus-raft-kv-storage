@@ -1,9 +1,6 @@
 package uni.da.remote.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.var;
-import org.apache.dubbo.config.ReferenceConfig;
-import org.apache.dubbo.config.RegistryConfig;
 import uni.da.common.Addr;
 import uni.da.entity.ClientRequest;
 import uni.da.entity.ClientResponse;
@@ -50,16 +47,28 @@ public class RaftClientImpl implements RaftClient {
     }
 
 
-
+    /**
+     * put key val
+     * get key
+     * @throws ExecutionException
+     * @throws InterruptedException
+     * @throws RemoteException
+     */
     @Override
     public void ClientPrompt() throws ExecutionException, InterruptedException, RemoteException {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
-            String command = scanner.nextLine();
+
+            String[] input = scanner.nextLine().split(" ");
+
+            String command = input[0];
+
             if (command.equals("put")) {
-                int key = scanner.nextInt();
-                String val = scanner.nextLine();
+
+                int key = Integer.parseInt(input[1]);
+                String val = input[2];
+
                 put(ClientRequest.builder()
                         .TYPE(0)
                         .key(key)

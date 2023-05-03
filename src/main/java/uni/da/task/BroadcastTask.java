@@ -34,7 +34,7 @@ public class BroadcastTask extends AbstractRaftTask {
             return EventType.FAIL;
         }
 
-        LogUtil.printBoxedMessage(consensusState.getName() + " broadcast msg !");
+//        LogUtil.printBoxedMessage(consensusState.getName() + " broadcast msg !");
 
         CopyOnWriteArrayList<AppendEntryResponse> responses = new CopyOnWriteArrayList<>();
 
@@ -46,7 +46,7 @@ public class BroadcastTask extends AbstractRaftTask {
                 .collect(Collectors.toSet());
 
         // 睡一会，避免疯狂心跳
-        Thread.sleep(consensusState.getTimeout() / 2);
+        Thread.sleep(consensusState.getTimeout() / 10);
 
         // 并发广播心跳
         for(Integer sid: keysExcludeSelf) {

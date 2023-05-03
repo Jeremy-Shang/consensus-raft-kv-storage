@@ -39,6 +39,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
     /**
      * 判断是否投票
+     * 原则：一个人只能在同一个任期，给一个人投票
      * @param request
      * @return
      */
@@ -49,13 +50,21 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                 .isVote(false)
                 .build();
 
-        // 如果当前的请求投票中的任期已经投过了，拒绝
-        /**
-         * TODO 如果投过票的人，在同一个任期还向我要票，我还是要给
-         */
-        if (consensusState.getVoteHistory().containsKey(request.getTerm())) {
 
-            LogUtil.printBoxedMessage("reject to vote node (already vote)" + request.getCandidateId() + " current term: " + consensusState.getTerm().get());
+
+
+        // 如果当前也在参选，直接拒绝
+        if (consensusState.getCharacter() == Character.Candidate && request.getCandidateId() != consensusState.getId()) {
+            return reject;
+        }
+
+        // 在该任期投过票了，并且投的候选人不是request中的候选人额
+        if (consensusState.getVoteHistory().containsKey(request.getTerm()) &&
+                consensusState.getVoteHistory().get(request.getTerm()) != request.getCandidateId()) {
+
+            LogUtil.printBoxedMessage("reject to vote node (already vote)"
+                    + request.getCandidateId()
+                    + " at its term: " + request.getTerm() + " vote history: " + consensusState.getVoteHistory().toString());
 
             return reject;
         }
@@ -63,10 +72,13 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         // 如果是自己给自己投 或者 如果自己是follower, 并且对面任期不小于自己，投票
         if (request.getCandidateId() == consensusState.getId() || (consensusState.getCharacter() == Character.Follower && request.getTerm() >= consensusState.getTerm().get())) {
 
-            LogUtil.printBoxedMessage("vote to node " + request.getCandidateId() + " current term: " + consensusState.getTerm().get());
+            LogUtil.printBoxedMessage("vote to node " + request.getCandidateId() + " at its term " + request.getTerm()+ " vote history: " + consensusState.getVoteHistory().toString());
 
             /** 加入投票历史，表示在这一轮投了谁 */
-            consensusState.getVoteHistory().put(consensusState.getTerm().get(), request.getCandidateId());
+            consensusState.getVoteHistory().put(request.getTerm(), request.getCandidateId());
+
+            // 重置超时时间
+            resetTimer();
 
             return RequestVoteResponse.builder()
                     .term(consensusState.getTerm().get())
@@ -74,7 +86,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                     .build();
         }
 
-        LogUtil.printBoxedMessage("reject to vote node (condition not satisfied)" + request.getCandidateId() + " current term: " + consensusState.getTerm().get());
+
+        LogUtil.printBoxedMessage("reject to vote node (condition not satisfied)" + request.getCandidateId() + " at its term: " + request.getTerm()+ " vote history: " + consensusState.getVoteHistory().toString());
 
         // 否则拒绝投票
         return reject;
@@ -98,13 +111,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         // 3. TODO 设置当前leaderID
         consensusState.getLeaderId().getAndSet(request.getLeaderId());
 
+        resetTimer();
 
-        // 3. 解除阻塞，继续监听心跳
-        try {
-            this.consensusState.getPipe().getOutputStream().write(1);
-        } catch (IOException e) {
-            log.error("写入管道失败");
-        }
 
         // TODO 追加日志 同步
         // 1. 一致性检查, 当前日志体中不包含prevIndex，拒绝
@@ -113,6 +121,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                 .isPresent(request.getPrevLogIndex());
 
         if (!isPresent) {
+            log.info("一致性检查失败");
             return AppendEntryResponse.builder()
                     .term(consensusState.getTerm().get())
                     .isSuccess(false)
@@ -130,8 +139,10 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                     .isSuccess(true)
                     .build();
         } else {
-            consensusState.getLogModule().append(request.getLogEntry());
 
+
+            consensusState.getLogModule().append(request.getLogEntry());
+            log.info("复制日志" + consensusState.getLogModule().getLogEntries().toString());
             // 加入leader给的日志体之后，matchIndex会发生变化
             return AppendEntryResponse.builder()
                     .term(consensusState.getTerm().get())
@@ -214,10 +225,20 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     }
 
 
-
-
     @Override
     public void sayHi() {
         log.info("hi");
+    }
+
+
+
+    private void resetTimer() {
+        // 3. 解除阻塞，继续监听心跳
+        try {
+//            log.info("解除阻塞，监听心跳");
+            this.consensusState.getPipe().getOutputStream().write(1);
+        } catch (IOException e) {
+            log.error("写入管道失败");
+        }
     }
 }

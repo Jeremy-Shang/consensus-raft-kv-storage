@@ -9,9 +9,8 @@ import lombok.ToString;
 import java.io.Serializable;
 
 @ToString
-@Builder
 @Data
-@AllArgsConstructor
+@Builder
 public class ClientRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -21,4 +20,5 @@ public class ClientRequest implements Serializable {
     int key;
 
     String val;
+
 }

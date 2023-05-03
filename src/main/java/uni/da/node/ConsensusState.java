@@ -2,10 +2,8 @@ package uni.da.node;
 
 
 import lombok.*;
-import org.checkerframework.checker.units.qual.A;
 import uni.da.common.Addr;
 import uni.da.common.Pipe;
-import uni.da.entity.Log.LogEntry;
 import uni.da.remote.RaftRpcService;
 
 import java.io.IOException;

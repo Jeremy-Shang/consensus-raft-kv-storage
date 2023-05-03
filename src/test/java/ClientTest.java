@@ -10,7 +10,10 @@ public class ClientTest {
     public static void main(String[] args) throws InterruptedException, ExecutionException, RemoteException {
         RaftClient raftClient = new RaftClientImpl();
 
-        raftClient.put(new ClientRequest(0, 1, "666"));
-
+//        ClientRequest request = new ClientRequest(0, 1, "6666");
+//
+//        RaftClientImpl raftClient1 = new RaftClientImpl();
+//        raftClient1.put(request);
+        raftClient.ClientPrompt();
     }
 }

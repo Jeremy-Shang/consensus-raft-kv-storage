@@ -1,6 +1,5 @@
 package uni.da.remote;
 
-import org.apache.dubbo.remoting.Client;
 import uni.da.entity.ClientRequest;
 import uni.da.entity.ClientResponse;
 

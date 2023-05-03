@@ -1,11 +1,15 @@
 package uni.da.entity;
 
 
-import lombok.Data;
+import lombok.*;
 
 import java.io.Serializable;
 
 @Data
+@Builder
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class ClientResponse<T>  implements Serializable {
     T data;
 
