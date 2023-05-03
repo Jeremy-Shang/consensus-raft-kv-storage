@@ -3,8 +3,10 @@ package uni.da.entity;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class ClientResponse<T> {
+public class ClientResponse<T>  implements Serializable {
     T data;
 
     String msg;

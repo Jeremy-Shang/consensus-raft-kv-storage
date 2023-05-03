@@ -103,16 +103,11 @@ public class NodeImpl implements Node {
 
 
 
-
-
-
         /** 启动状态机流转*/
         Thread stateMachine = new Thread(new RaftStateMachine(consensusState));
         stateMachine.start();
 
         /** client */
-
-
 
 
 
@@ -177,7 +172,6 @@ public class NodeImpl implements Node {
 
         log.info("注册本地节点服务成功");
 
-
     }
 
     private void remoteClientRegistry() throws InterruptedException, RemoteException, NotBoundException {
@@ -205,7 +199,8 @@ public class NodeImpl implements Node {
 
                     countDownLatch.countDown();
 
-                    log.info("获取远程服务成功: {} 尝试次数: {}", addr.toString(), count);
+                    log.info("获取远程服务成功: {}", addr.toString());
+
                     break;
                 } catch (Exception e) {
                     Thread.sleep(3000);
@@ -214,66 +209,7 @@ public class NodeImpl implements Node {
                 }
             }
         }
-
         consensusState.setRemoteServiceMap(remoteServiceMap);
-
     }
-
-
-
-//    private void remoteServiceRegistry() {
-//        log.info("注册本地RPC服务");
-//        // 注册本节点的RPC服务
-//        ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
-//        service.setInterface(RaftRpcService.class);
-//        service.setRef(new RaftRpcServiceImpl(consensusState));
-//        service.setTimeout(consensusState.getTimeout());
-//
-//
-//        // 启动，暴露服务
-//        DubboBootstrap.getInstance()
-//                .application("first-dubbo-provider")
-//                .registry(new RegistryConfig("N/A"))
-//                .protocol(new ProtocolConfig("dubbo", consensusState.getAddr().getPort()))
-//                .service(service)
-//                .start()
-//                .await();
-//    }
-//
-//    private void remoteClientRegistry() throws InterruptedException {
-//        log.info("加载集群远程服务...");
-//
-//        Map<Integer, Addr> clusterAddr = consensusState.getClusterAddr();
-//        Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
-//
-//        for(Integer id: clusterAddr.keySet()) {
-//            Addr addr = clusterAddr.get(id);
-//            // 连接注册中心配置 (不使用)
-//            RegistryConfig registry = new RegistryConfig();
-//
-//            ReferenceConfig<RaftRpcService> reference = new ReferenceConfig<RaftRpcService>();
-//            reference.setInterface(RaftRpcService.class);
-//            reference.setUrl("dubbo://" + addr.getIp() + ":" + addr.getPort());
-//
-//            for(int count=1; ; count++){
-//                try {
-//                    // 获取远程节点提供服务接口
-//                    RaftRpcService raftRpcService = reference.get();
-//                    // 保存在 id: service 中
-//                    remoteServiceMap.put(id, raftRpcService);
-//
-//                    countDownLatch.countDown();
-//                    break;
-//                } catch (Exception e) {
-//                    Thread.sleep(3000);
-//                    log.info("获取远程服务失败: {} 尝试次数: {}", addr.toString(), count);
-//                }
-//            }
-//        }
-//
-//        this.consensusState.setRemoteServiceMap(remoteServiceMap);
-//
-//        log.info("远程服务获取成功");
-//    }
 
 }

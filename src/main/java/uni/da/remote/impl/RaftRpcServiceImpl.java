@@ -147,6 +147,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     @Override
     public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException {
 
+        log.info(request.toString());
+
         // 1. TODO get request
         if (request.getTYPE() == 1) {
             return null;
@@ -217,6 +219,5 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     @Override
     public void sayHi() {
         log.info("hi");
-//        log.warn(consensusState.getName() + " say hi to you from " + consensusState.getAddr().getIp()+ ":" + consensusState.getAddr().getPort());
     }
 }
