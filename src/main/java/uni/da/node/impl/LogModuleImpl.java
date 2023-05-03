@@ -4,9 +4,11 @@ import lombok.Data;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.LogModule;
 
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -38,10 +40,20 @@ public class LogModuleImpl implements LogModule {
 
     @Override
     public LogEntry getEntryByIndex(int index) {
+
+        if (index >= logEntries.size()) {
+            return null;
+        }
+
         return this.logEntries.stream()
                 .filter(e -> e.getLogIndex() == index)
                 .collect(Collectors.toList())
                 .get(0);
+    }
+
+    @Override
+    public void commit(int index) {
+
     }
 
     @Override
@@ -77,7 +89,11 @@ public class LogModuleImpl implements LogModule {
 
     @Override
     public boolean isPresent(int index) {
-        return false;
+        if (index == 0) {
+            return true;
+        }
+
+        return logEntries.stream().filter(e -> e.getLogIndex() == index).count() > 0;
     }
 
     @Override

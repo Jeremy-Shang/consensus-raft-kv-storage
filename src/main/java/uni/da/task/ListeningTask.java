@@ -1,9 +1,10 @@
-package uni.da.statemachine.task;
+package uni.da.task;
 
 
 import lombok.extern.slf4j.Slf4j;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
+import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 
 @Slf4j

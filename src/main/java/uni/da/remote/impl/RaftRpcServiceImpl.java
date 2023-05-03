@@ -2,19 +2,23 @@ package uni.da.remote.impl;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import uni.da.entity.*;
 import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
-import uni.da.entity.AppendEntryRequest;
-import uni.da.entity.RequestVoteRequest;
-import uni.da.entity.AppendEntryResponse;
-import uni.da.entity.RequestVoteResponse;
-import uni.da.statemachine.task.BroadcastTask;
+import uni.da.statemachine.fsm.component.Event;
+import uni.da.statemachine.fsm.component.EventType;
+import uni.da.task.BroadcastTask;
 import uni.da.util.LogUtil;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Data
@@ -75,12 +79,16 @@ public class RaftRpcServiceImpl implements RaftRpcService {
      */
     @Override
     public AppendEntryResponse appendEntry(AppendEntryRequest request) {
-
+        /** 维持心跳的工作 */
         // 1. 任期号跟Leader同步
         consensusState.getTerm().set(request.getTerm());
 
         // 2. 状态变更为Follower
         consensusState.setCharacter(Character.Follower);
+
+        // 3. TODO 设置当前leaderID
+        consensusState.getLeaderId().getAndSet(request.getLeaderId());
+
 
         // 3. 解除阻塞，继续监听心跳
         try {
@@ -102,20 +110,39 @@ public class RaftRpcServiceImpl implements RaftRpcService {
                     .build();
         }
 
-        // 2. 加入logbody, 返回成功
-        consensusState.getLogModule().append(request.getLogEntry());
 
-        return AppendEntryResponse.builder()
-                .term(consensusState.getTerm().get())
-                .isSuccess(true)
-                .build();
+        // 2. 追加日志
+        // 1. 如果是心跳消息 (空日志体), 跟leader汇报自己目前match到哪里就可以了
+        if (request.getLogEntry() == null) {
+            return AppendEntryResponse.builder()
+                    .isHeartBeat(true)
+                    .matchIndex(consensusState.getLogModule().getLastLogIndex())
+                    .term(consensusState.getTerm().get())
+                    .isSuccess(true)
+                    .build();
+        } else {
+            consensusState.getLogModule().append(request.getLogEntry());
+
+            // 加入leader给的日志体之后，matchIndex会发生变化
+            return AppendEntryResponse.builder()
+                    .term(consensusState.getTerm().get())
+                    .isSuccess(true)
+                    .isHeartBeat(false)
+                    .matchIndex(consensusState.getLogModule().getLastLogIndex())
+                    .build();
+
+        }
+
     }
 
-    public String handleClientRequest(int key, String val) {
+    @Override
+    public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException {
+        int key = request.getKey();
+        String val = request.getVal();
 
         // 1. TODO redirect to leader
         if (consensusState.getCharacter() != Character.Leader) {
-            return "";
+            return null;
         }
 
         // 2. 当前leader中直接插入指令
@@ -127,23 +154,19 @@ public class RaftRpcServiceImpl implements RaftRpcService {
 
         consensusState.getLogModule().append(logEntry);
 
+
         // 3. 发起消息广播
-        consensusState.getNodeExecutorService().submit(new BroadcastTask(consensusState));
+        Future<EventType> future =  consensusState.getNodeExecutorService().submit(new BroadcastTask(consensusState));
 
+        try {
+            future.get();
+        } catch (Exception e) {
+            log.error("任务失败");
+        }
 
-
-
-
-
-
-
-        // 4. 收到半数/没收到半数, 需要进行commit
-
-
-        return null;
+        // 4. TODO 客户端需要回显
+        return ClientResponse.success("any");
     }
-
-
 
 
 

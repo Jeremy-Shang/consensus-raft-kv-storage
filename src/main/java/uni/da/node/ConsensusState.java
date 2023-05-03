@@ -2,6 +2,7 @@ package uni.da.node;
 
 
 import lombok.*;
+import org.checkerframework.checker.units.qual.A;
 import uni.da.common.Addr;
 import uni.da.common.Pipe;
 import uni.da.entity.Log.LogEntry;
@@ -54,6 +55,10 @@ public class ConsensusState {
     /** 节点动态参数 */
     // 当前任期
     public AtomicInteger term = new AtomicInteger();
+
+    // 集群leader id
+    public AtomicInteger leaderId = new AtomicInteger(-1);
+
 
     // 日志模块 （包含日志体）
     private volatile LogModule logModule;

@@ -1,7 +1,19 @@
 package uni.da.remote;
 
-public interface RaftClient {
-    public void put(int key, String value);
+import org.apache.dubbo.remoting.Client;
+import uni.da.entity.ClientRequest;
+import uni.da.entity.ClientResponse;
 
-    public String get(int key);
+import java.util.concurrent.ExecutionException;
+
+public interface RaftClient {
+
+
+    public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException;
+
+
+
+
+
+    public ClientResponse get(ClientRequest request);
 }

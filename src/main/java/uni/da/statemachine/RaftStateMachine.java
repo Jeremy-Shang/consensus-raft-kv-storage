@@ -8,9 +8,9 @@ import uni.da.statemachine.fsm.component.Context;
 import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.statemachine.fsm.StateMachine;
-import uni.da.statemachine.task.ElectionTask;
-import uni.da.statemachine.task.BroadcastTask;
-import uni.da.statemachine.task.ListeningTask;
+import uni.da.task.ElectionTask;
+import uni.da.task.BroadcastTask;
+import uni.da.task.ListeningTask;
 import uni.da.statemachine.fsm.component.RaftState;
 
 import java.io.IOException;

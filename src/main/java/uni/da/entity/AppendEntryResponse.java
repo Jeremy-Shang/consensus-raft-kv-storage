@@ -13,5 +13,10 @@ import java.io.Serializable;
 public class AppendEntryResponse implements Serializable {
     int term;
 
+    int matchIndex;
+
     boolean isSuccess;
+
+    boolean isHeartBeat;
+
 }

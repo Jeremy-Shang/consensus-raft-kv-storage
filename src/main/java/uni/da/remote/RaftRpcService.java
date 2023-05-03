@@ -1,10 +1,9 @@
 package uni.da.remote;
 
+import uni.da.entity.*;
 import uni.da.node.ConsensusState;
-import uni.da.entity.AppendEntryRequest;
-import uni.da.entity.RequestVoteRequest;
-import uni.da.entity.AppendEntryResponse;
-import uni.da.entity.RequestVoteResponse;
+
+import java.util.concurrent.ExecutionException;
 
 
 /*
@@ -17,4 +16,6 @@ public interface RaftRpcService {
     public AppendEntryResponse appendEntry(AppendEntryRequest request);
 
     public void sayHi(ConsensusState config);
+
+    public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException;
 }

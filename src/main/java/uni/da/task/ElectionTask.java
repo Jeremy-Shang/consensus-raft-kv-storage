@@ -1,4 +1,4 @@
-package uni.da.statemachine.task;
+package uni.da.task;
 
 import lombok.extern.slf4j.Slf4j;
 import uni.da.entity.RequestVoteRequest;
@@ -6,6 +6,7 @@ import uni.da.entity.RequestVoteResponse;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
+import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.util.LogUtil;
 
