@@ -8,7 +8,7 @@ public class ClientTest {
     public static void main(String[] args) throws InterruptedException, ExecutionException {
         RaftClient raftClient = new RaftClientImpl();
 
-        raftClient.ClientPrompt();
+
 
     }
 }

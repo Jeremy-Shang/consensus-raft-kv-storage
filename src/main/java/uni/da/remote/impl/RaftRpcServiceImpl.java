@@ -14,6 +14,8 @@ import uni.da.task.BroadcastTask;
 import uni.da.util.LogUtil;
 
 import java.io.IOException;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,11 +27,12 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Data
-public class RaftRpcServiceImpl implements RaftRpcService {
+public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcService {
 
     private ConsensusState consensusState;
 
-    public RaftRpcServiceImpl(ConsensusState consensusState) {
+    public RaftRpcServiceImpl(ConsensusState consensusState) throws RemoteException {
+        super();
         this.consensusState = consensusState;
 
     }
@@ -212,7 +215,8 @@ public class RaftRpcServiceImpl implements RaftRpcService {
 
 
     @Override
-    public void sayHi(ConsensusState consensusState) {
-        log.warn(consensusState.getName() + " say hi to you from " + consensusState.getAddr().getIp()+ ":" + consensusState.getAddr().getPort());
+    public void sayHi() {
+        log.info("hi");
+//        log.warn(consensusState.getName() + " say hi to you from " + consensusState.getAddr().getIp()+ ":" + consensusState.getAddr().getPort());
     }
 }

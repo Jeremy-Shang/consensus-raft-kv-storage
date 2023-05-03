@@ -13,6 +13,7 @@ import uni.da.remote.RaftRpcService;
 import uni.da.statemachine.fsm.component.Event;
 import uni.da.util.LogUtil;
 
+import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ public class RaftClientImpl implements RaftClient {
 
 
     @Override
-    public void ClientPrompt() throws ExecutionException, InterruptedException {
+    public void ClientPrompt() throws ExecutionException, InterruptedException, RemoteException {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
@@ -73,7 +74,7 @@ public class RaftClientImpl implements RaftClient {
 
 
     @Override
-    public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException {
+    public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException {
         // 1. TODO template 暂时只往默认leader 发送信息
         RaftRpcService service = remoteServiceMap.get(1);
 

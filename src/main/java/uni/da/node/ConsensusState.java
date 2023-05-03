@@ -9,6 +9,7 @@ import uni.da.entity.Log.LogEntry;
 import uni.da.remote.RaftRpcService;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Data
 @ToString
-public class ConsensusState {
+public class ConsensusState implements Serializable {
 
     // 确保节点参数对象唯一
     private static ConsensusState consensusState;
