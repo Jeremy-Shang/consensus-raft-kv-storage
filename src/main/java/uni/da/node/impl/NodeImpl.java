@@ -58,7 +58,8 @@ public class NodeImpl implements Node {
 
         this.consensusState.setLogModule(new LogModuleImpl(100));
 
-        this.consensusState.getTerm().getAndSet(this.consensusState.getLogModule().getLastLogIndex());
+        log.info("size" + String.valueOf(consensusState.getLogModule().getLogEntries().size()));
+//        this.consensusState.getTerm().getAndSet(this.consensusState.getLogModule().getLastLogIndex());
 
     }
 
@@ -150,7 +151,8 @@ public class NodeImpl implements Node {
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
         service.setInterface(RaftRpcService.class);
         service.setRef(new RaftRpcServiceImpl(consensusState));
-        service.setTimeout(consensusState.getTimeout());
+//        service.setTimeout();
+
 
         // 启动，暴露服务
         DubboBootstrap.getInstance()

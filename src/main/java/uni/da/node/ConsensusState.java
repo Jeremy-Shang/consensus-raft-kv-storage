@@ -39,6 +39,8 @@ public class ConsensusState {
     // 超时时长，毫秒
     private final int timeout;
 
+
+
     // 集群中其他所有的节点的配置
     private Map<Integer, Addr> clusterAddr;
 
@@ -53,8 +55,8 @@ public class ConsensusState {
 
 
     /** 节点动态参数 */
-    // 当前任期
-    public AtomicInteger term = new AtomicInteger();
+    // 初始化任期为1
+    public AtomicInteger term = new AtomicInteger(1);
 
     // 集群leader id
     public AtomicInteger leaderId = new AtomicInteger(-1);
@@ -86,14 +88,10 @@ public class ConsensusState {
         this.timeout = timeout;
 
         this.pipe = new Pipe("hearBeat");
-
-        // 初始状态下
-        clusterAddr.forEach((k,v) -> {
-            nextIndex.put(k, 1);
-            matchIndex.put(k, 0);
-        });
-
     }
+
+
+
 
 
 
@@ -114,6 +112,17 @@ public class ConsensusState {
             consensusState = new ConsensusState(id, name, addr, timeoutRange);
         }
         return consensusState;
+    }
+
+    public void setClusterAddr(Map<Integer, Addr> clusterAddr) {
+        this.clusterAddr = clusterAddr;
+
+        // 初始状态下
+        clusterAddr.forEach((k,v) -> {
+            nextIndex.put(k, 1);
+            matchIndex.put(k, 0);
+        });
+
     }
 
 

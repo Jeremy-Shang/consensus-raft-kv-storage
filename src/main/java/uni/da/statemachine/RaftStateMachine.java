@@ -64,10 +64,13 @@ public class RaftStateMachine implements Runnable {
                 futureEventType = future.get(consensusState.getTimeout(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 log.info("======> task timeout: " + consensusState.getTimeout());
+                e.printStackTrace();
             } catch (InterruptedException e) {
                 log.info("======> task interrupted");
+                e.printStackTrace();
             } catch (ExecutionException e) {
                 log.info("======> task executionException");
+                e.printStackTrace();
             } finally {
                 log.info("======> task result: {}", futureEventType.toString());
                 // 从状态机获得下一个任务

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
+import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.LogModule;
 
@@ -20,7 +21,9 @@ public class LogModuleImpl implements LogModule {
     @NonNull private int maximumSize;
 
     // 日志队列
-    private CopyOnWriteArrayList<LogEntry> logEntries;
+    private CopyOnWriteArrayList<LogEntry> logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
+            new LogEntry(1, 0, new LogBody(-1, "fake"))
+    });
     
     @Override
     public void start() {
@@ -39,7 +42,6 @@ public class LogModuleImpl implements LogModule {
 
     @Override
     public LogEntry getEntryByIndex(int index) {
-
         if (index >= logEntries.size()) {
             return null;
         }
@@ -58,14 +60,16 @@ public class LogModuleImpl implements LogModule {
     @Override
     public int getLastLogIndex() {
 
-
-
         return logEntries.stream().map(e -> e.getLogIndex())
                 .max((a, b) -> b - a).get();
     }
 
     @Override
     public int getLastLogTerm() {
+
+        if (logEntries.size() == 0) {
+            return 1;
+        }
 
         return logEntries.get(getLastLogIndex()).getTerm();
     }

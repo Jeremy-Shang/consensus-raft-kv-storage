@@ -30,16 +30,31 @@ public class ElectionTask extends AbstractRaftTask {
      */
     @Override
     public EventType call() throws Exception {
+
         // 节点增加自己任期，并进入候选人状态
         consensusState.getTerm().incrementAndGet();
+
+
         consensusState.setCharacter(Character.Candidate);
+
 
         LogUtil.printBoxedMessage(consensusState.getName() + " start election !");
 
+
+
+
+
+
+
+
+
         Map<Integer, RaftRpcService> remoteServiceMap = this.consensusState.getRemoteServiceMap();
+
 
         // 过半数票
         CountDownLatch votes = new CountDownLatch((int) Math.ceil(consensusState.getClusterAddr().size() / 2) + 1);
+
+
 
         // 请求所有人投票，包括自己
         for(Integer id: remoteServiceMap.keySet()) {

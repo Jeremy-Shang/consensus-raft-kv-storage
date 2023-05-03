@@ -12,7 +12,7 @@
             <AppenderRef ref="Console"/>
         </Root>
 
-        <Logger name="org.apache.dubbo" level="off" />
+        <Logger name="org.apache.dubbo" level="info" />
 
     </Loggers>
 </Configuration>

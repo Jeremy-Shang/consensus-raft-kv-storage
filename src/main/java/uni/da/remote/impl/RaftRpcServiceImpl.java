@@ -47,6 +47,9 @@ public class RaftRpcServiceImpl implements RaftRpcService {
                 .build();
 
         // 如果当前的请求投票中的任期已经投过了，拒绝
+        /**
+         * TODO 如果投过票的人，在同一个任期还向我要票，我还是要给
+         */
         if (consensusState.getVoteHistory().containsKey(request.getTerm())) {
 
             LogUtil.printBoxedMessage("reject to vote node (already vote)" + request.getCandidateId() + " current term: " + consensusState.getTerm().get());
