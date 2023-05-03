@@ -46,7 +46,7 @@ public class RaftClientImpl implements RaftClient {
 
 
 
-
+    @Override
     public void ClientPrompt() throws ExecutionException, InterruptedException {
         Scanner scanner = new Scanner(System.in);
 

@@ -14,6 +14,8 @@ public interface RaftClient {
 
 
 
+    public void ClientPrompt() throws ExecutionException, InterruptedException;
+
 
     public ClientResponse get(ClientRequest request);
 }

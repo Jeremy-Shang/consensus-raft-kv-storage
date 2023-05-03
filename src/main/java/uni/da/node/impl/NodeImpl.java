@@ -151,7 +151,7 @@ public class NodeImpl implements Node {
         ServiceConfig<RaftRpcService> service = new ServiceConfig<RaftRpcService>();
         service.setInterface(RaftRpcService.class);
         service.setRef(new RaftRpcServiceImpl(consensusState));
-//        service.setTimeout();
+        service.setTimeout(consensusState.getTimeout());
 
 
         // 启动，暴露服务
