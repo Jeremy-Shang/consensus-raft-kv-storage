@@ -5,14 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0e00c272-373f-40cd-bbcd-69e187132960" name="Changes" comment="update">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dependency-reduced-pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/dependency-reduced-pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/uni/da/RaftClusterApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/uni/da/RaftClusterApp.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/uni/da/node/ConsensusState.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/uni/da/node/ConsensusState.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/uni/da/node/LogModule.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/uni/da/node/LogModule.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/uni/da/remote/impl/RaftRpcServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/uni/da/remote/impl/RaftRpcServiceImpl.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +41,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "statesaver",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
