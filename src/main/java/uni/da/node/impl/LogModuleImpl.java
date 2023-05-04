@@ -9,6 +9,7 @@ import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.LogModule;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -40,6 +41,23 @@ public class LogModuleImpl implements LogModule {
         return logEntries;
     }
 
+
+    @Override
+    public LogEntry getLogEntry(int index, int term) {
+
+        List<LogEntry> lst = logEntries.stream()
+                .filter(e -> e.getLogIndex() == index && e.getTerm() == term)
+                .collect(Collectors.toList());
+
+        return lst.size() == 0 ? null : lst.get(0);
+    }
+
+
+
+
+
+
+
     @Override
     public LogEntry getEntryByIndex(int index) {
         if (index >= logEntries.size()) {
@@ -53,8 +71,8 @@ public class LogModuleImpl implements LogModule {
     }
 
     @Override
-    public void commit(int index) {
-
+    public void apply(int index) {
+        // TODO applu to state machine
     }
 
     @Override
@@ -106,7 +124,7 @@ public class LogModuleImpl implements LogModule {
     }
 
     @Override
-    public void append(LogEntry logEntry) {
+    public synchronized void append(LogEntry logEntry) {
 
     }
 

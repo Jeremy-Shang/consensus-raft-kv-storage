@@ -70,19 +70,23 @@ public class ConsensusState implements Serializable {
     /** Volatile state on all servers */
 
     /**
-     * 1. commitIndex: index of highest log entry known to be
+     * 1. commitIndex: index of the highest log entry known to be
      *  committed (initialized to 0, increases
      *  monotonically)
      *
      *  Obtain from Logmodule
      */
 
+    private AtomicInteger commitIndex;
+
     /**
      * 2. lastApplied
-     * index of highest log entry applied to state
+     * index of the highest log entry applied to state
      * machine (initialized to 0, increases
      * monotonically)
      */
+    private AtomicInteger lastApplied;
+
 
     /**
      * for each server, index of the next log entry
@@ -123,6 +127,24 @@ public class ConsensusState implements Serializable {
         restore();
     }
 
+
+    /**
+     * If commitIndex > lastApplied: increment lastApplied, apply
+     * log[lastApplied] to state machine (§5.3)
+     * @param newCommitIndex
+     */
+    public void setCommitIndex(int newCommitIndex) {
+
+        this.commitIndex.set(newCommitIndex);
+
+        if (this.commitIndex.get() > this.lastApplied.get()) {
+
+            this.lastApplied.incrementAndGet();
+
+            this.logModule.apply(this.lastApplied.get());
+        }
+
+    }
 
 
     /**

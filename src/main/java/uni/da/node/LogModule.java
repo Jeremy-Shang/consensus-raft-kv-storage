@@ -1,6 +1,5 @@
 package uni.da.node;
 
-import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -27,5 +26,9 @@ public interface LogModule extends RaftModule{
 
     public LogEntry getEntryByIndex(int index);
 
-    public void commit(int index);
+    public void apply(int index);
+
+    public LogEntry getLogEntry(int index, int term);
+
+
 }

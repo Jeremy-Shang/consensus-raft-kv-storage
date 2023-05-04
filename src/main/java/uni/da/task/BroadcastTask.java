@@ -101,7 +101,7 @@ public class BroadcastTask extends AbstractRaftTask {
                 .collect(Collectors.toList());
 
         // 5. leader进行commit
-        commitIndexes.forEach(i -> consensusState.getLogModule().commit(i));
+        commitIndexes.forEach(i -> consensusState.getLogModule().apply(i));
 
 
         return EventType.SUCCESS;
