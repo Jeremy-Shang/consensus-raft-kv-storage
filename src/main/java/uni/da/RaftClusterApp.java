@@ -83,8 +83,8 @@ public class RaftClusterApp {
 //        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
 
         ConsensusState consensusState = new ConsensusState(id, "node"+id, new Addr(ip, port), timeout);
-        StateManager stateManager = new StateManager();
-        stateManager.restoreState(consensusState);
+        StateManager stateManager = StateManager.getStateManager(consensusState);
+        stateManager.restoreState();
         consensusState.setClusterAddr(clusterAddr);
 
         Node node = NodeImpl.getInstance(consensusState);

@@ -9,8 +9,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StateManager {
-    public void saveState(ConsensusState consensusState) {
+    private static StateManager stateManager = null;
+    private ConsensusState consensusState;
+
+    private StateManager(ConsensusState consensusState) {
+        this.consensusState = consensusState;
+    }
+
+    public static StateManager getStateManager(ConsensusState consensusState){
+        if (stateManager == null) {
+            stateManager = new StateManager(consensusState);
+        }
+        return stateManager;
+    }
+
+    public void saveState() {
         PersistentState persistentState = new PersistentState(consensusState.getTerm().get(), consensusState.getVotedFor(), consensusState.getLogModule().getLogEntries().stream().toList());
+
         try {
             File myObj = new File("uni/da/state_"+consensusState.getId()+".txt");
             myObj.createNewFile();
@@ -21,12 +36,11 @@ public class StateManager {
             fileOutputStream.close();
             objectOutputStream.close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println("保存状态失败");
         }
     }
 
-    public void restoreState(ConsensusState consensusState) {
-
+    public void restoreState() {
         try {
             FileInputStream fileInputStream = new FileInputStream("uni/da/state_"+consensusState.getId()+".txt");
             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);

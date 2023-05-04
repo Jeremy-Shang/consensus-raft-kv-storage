@@ -46,8 +46,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
      */
     @Override
     public RequestVoteResponse requestVote(RequestVoteRequest request) {
-         StateManager stateManager = new StateManager();
-         stateManager.saveState(consensusState);
+        StateManager.getStateManager(consensusState).saveState();
         System.out.println("haha");
 
         RequestVoteResponse reject = RequestVoteResponse.builder()
@@ -106,8 +105,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
      */
     @Override
     public AppendEntryResponse appendEntry(AppendEntryRequest request) {
-        StateManager stateManager = new StateManager();
-        stateManager.saveState(consensusState);
+        StateManager.getStateManager(consensusState).saveState();
         /** 维持心跳的工作 */
         // 1. 任期号跟Leader同步
         consensusState.getTerm().set(request.getTerm());
