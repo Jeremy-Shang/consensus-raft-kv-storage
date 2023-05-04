@@ -28,4 +28,5 @@ public interface LogModule extends RaftModule{
     public LogEntry getEntryByIndex(int index);
 
     public void commit(int index);
+    public void setLogEntries(CopyOnWriteArrayList<LogEntry> logEntries);
 }

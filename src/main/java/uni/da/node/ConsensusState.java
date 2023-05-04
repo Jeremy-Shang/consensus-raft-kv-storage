@@ -38,7 +38,7 @@ public class ConsensusState implements Serializable {
     // 超时时长，毫秒
     private final int timeout;
 
-
+    private int votedFor;
 
     // 集群中其他所有的节点的配置
     private Map<Integer, Addr> clusterAddr;

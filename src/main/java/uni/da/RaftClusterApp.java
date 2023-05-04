@@ -5,6 +5,7 @@ import uni.da.common.Addr;
 import uni.da.node.ConsensusState;
 import uni.da.node.Node;
 import uni.da.node.impl.NodeImpl;
+import uni.da.util.StateManager;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -82,7 +83,8 @@ public class RaftClusterApp {
 //        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
 
         ConsensusState consensusState = new ConsensusState(id, "node"+id, new Addr(ip, port), timeout);
-
+        StateManager stateManager = new StateManager();
+        stateManager.restoreState(consensusState);
         consensusState.setClusterAddr(clusterAddr);
 
         Node node = NodeImpl.getInstance(consensusState);

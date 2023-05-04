@@ -12,6 +12,7 @@ import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.task.BroadcastTask;
 import uni.da.util.LogUtil;
+import uni.da.util.StateManager;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -45,6 +46,10 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
      */
     @Override
     public RequestVoteResponse requestVote(RequestVoteRequest request) {
+         StateManager stateManager = new StateManager();
+         stateManager.saveState(consensusState);
+        System.out.println("haha");
+
         RequestVoteResponse reject = RequestVoteResponse.builder()
                 .term(consensusState.getTerm().get())
                 .isVote(false)
@@ -101,6 +106,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
      */
     @Override
     public AppendEntryResponse appendEntry(AppendEntryRequest request) {
+        StateManager stateManager = new StateManager();
+        stateManager.saveState(consensusState);
         /** 维持心跳的工作 */
         // 1. 任期号跟Leader同步
         consensusState.getTerm().set(request.getTerm());
