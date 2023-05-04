@@ -61,7 +61,6 @@ public class RaftClusterApp {
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-
         // 6666, 6667, 6668, 6669, 6670
 
         int id = Integer.parseInt(System.getProperty("id"));
@@ -81,9 +80,8 @@ public class RaftClusterApp {
 
 //        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
 
-        ConsensusState consensusState = new ConsensusState(id, "node"+id, new Addr(ip, port), timeout);
+        ConsensusState consensusState = new ConsensusState(id, "node"+id, new Addr(ip, port), timeout, clusterAddr);
 
-        consensusState.setClusterAddr(clusterAddr);
 
         Node node = NodeImpl.getInstance(consensusState);
 

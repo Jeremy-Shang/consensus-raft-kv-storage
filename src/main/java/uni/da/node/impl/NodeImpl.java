@@ -15,7 +15,6 @@ import uni.da.node.Node;
 import java.rmi.registry.Registry;
 import uni.da.remote.RaftRpcService;
 import uni.da.remote.impl.RaftRpcServiceImpl;
-import uni.da.rmi.RemoteInterface;
 import uni.da.statemachine.RaftStateMachine;
 
 import java.io.IOException;

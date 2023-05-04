@@ -55,7 +55,7 @@ public class RaftStateMachine implements Runnable {
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
         while (!Thread.currentThread().isInterrupted()) {
-            log.info("当前状态: {}, 当前任务: {}, 当前任期: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getTerm());
+            log.info("当前状态: {}, 当前任务: {}, 当前任期: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
             // 提交当前任务到线程池
             Future<EventType> future = consensusState.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
@@ -63,17 +63,17 @@ public class RaftStateMachine implements Runnable {
                 // 更新结果：成功/失败/超时
                 futureEventType = future.get(consensusState.getTimeout(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                log.info("======> task {} timeout at: {}ms term {}", currTask.getClass().getName(), consensusState.getTimeout(), consensusState.getTerm());
+                log.info("======> task {} timeout at: {}ms term {}", currTask.getClass().getName(), consensusState.getTimeout(), consensusState.getCurrTerm());
 
                 futureEventType = EventType.TIME_OUT;
                 e.printStackTrace();
             } catch (InterruptedException e) {
-                log.info("======> task {} interrupted term{}", currTask.getClass().getName(), consensusState.getTerm());
+                log.info("======> task {} interrupted term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
 
                 futureEventType = EventType.FAIL;
                 e.printStackTrace();
             } catch (ExecutionException e) {
-                log.info("======> task {} execution fail term{}", currTask.getClass().getName(), consensusState.getTerm());
+                log.info("======> task {} execution fail term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
 
                 futureEventType = EventType.FAIL;
                 e.printStackTrace();
@@ -116,8 +116,8 @@ public class RaftStateMachine implements Runnable {
             return RaftState.LISTENING_HEARTBEAT;
         });
         // 选举 -> 超时 = 选举
-        stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.LISTENING_HEARTBEAT, EventType.TIME_OUT, (o, e ) -> {
-            return RaftState.LISTENING_HEARTBEAT;
+        stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.ELECTION, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.ELECTION;
         });
 
 
@@ -127,12 +127,12 @@ public class RaftStateMachine implements Runnable {
             return RaftState.HEAR_BEAT;
         });
         // 心跳 -> 失败 = 继续心跳
-        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.LISTENING_HEARTBEAT, EventType.FAIL, (o, e ) -> {
-            return RaftState.LISTENING_HEARTBEAT;
+        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.FAIL, (o, e ) -> {
+            return RaftState.HEAR_BEAT;
         });
         // 心跳 -> 超时 = 继续心跳
-        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.LISTENING_HEARTBEAT, EventType.TIME_OUT, (o, e ) -> {
-            return RaftState.LISTENING_HEARTBEAT;
+        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.HEAR_BEAT;
         });
 
 

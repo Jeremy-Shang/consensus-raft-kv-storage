@@ -8,7 +8,6 @@ import uni.da.entity.Log.LogEntry;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
-import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.task.BroadcastTask;
 import uni.da.util.LogUtil;
@@ -23,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Data
@@ -40,15 +38,51 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     /**
      * 判断是否投票
      * 原则：一个人只能在同一个任期，给一个人投票
+     *
+     *
+     *  1. Reply false if term < currentTerm
+     *  2. If votedFor is null or candidateId, and candidate’s log is at
+     * least as up-to-date as receiver’s log, grant vote
+     *
+     *
      * @param request
      * @return
      */
     @Override
     public RequestVoteResponse requestVote(RequestVoteRequest request) {
         RequestVoteResponse reject = RequestVoteResponse.builder()
-                .term(consensusState.getTerm().get())
-                .isVote(false)
+                .term(consensusState.getCurrTerm().get())
+                .voteGranted(false)
                 .build();
+
+        if (request.getTerm() < consensusState.getCurrTerm().get()) {
+            log.info("[VOTE REJECT (1)] to node{}; currTerm {}, candidate term {}. ", request.getCandidateId(), consensusState.getCurrTerm(), request.getTerm());
+            return RequestVoteResponse.builder()
+                    .term(consensusState.getCurrTerm().get())
+                    .voteGranted(false)
+                    .build();
+        }
+
+        if ((consensusState.votedFor == null || consensusState.votedFor == request.getCandidateId())
+        &&(request.getLastLogTerm() > consensusState.getLogModule().getLastLogTerm() || (request.getLastLogTerm() == consensusState.getCurrTerm().get() && request.getLastLogIndex() > consensusState.getLogModule().getLastLogIndex()))) {
+            log.info("[VOTE GRANTED to node{}. ", request.getCandidateId());
+            return RequestVoteResponse.builder()
+                    .term(consensusState.getCurrTerm().get())
+                    .voteGranted(true)
+                    .build();
+        }
+
+
+        log.info("[VOTE REJECT (2)] to node{}; ", request.getCandidateId());
+
+        return RequestVoteResponse.builder()
+                .term(consensusState.getCurrTerm().get())
+                .voteGranted(false)
+                .build();
+
+
+
+
 
 
 
@@ -70,7 +104,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         }
 
         // 如果是自己给自己投 或者 如果自己是follower, 并且对面任期不小于自己，投票
-        if (request.getCandidateId() == consensusState.getId() || (consensusState.getCharacter() == Character.Follower && request.getTerm() >= consensusState.getTerm().get())) {
+        if (request.getCandidateId() == consensusState.getId() || (consensusState.getCharacter() == Character.Follower && request.getTerm() >= consensusState.getCurrTerm().get())) {
 
             LogUtil.printBoxedMessage("vote to node " + request.getCandidateId() + " at its term " + request.getTerm()+ " vote history: " + consensusState.getVoteHistory().toString());
 
@@ -81,8 +115,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             resetTimer();
 
             return RequestVoteResponse.builder()
-                    .term(consensusState.getTerm().get())
-                    .isVote(true)
+                    .term(consensusState.getCurrTerm().get())
+                    .voteGranted(true)
                     .build();
         }
 
@@ -103,7 +137,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     public AppendEntryResponse appendEntry(AppendEntryRequest request) {
         /** 维持心跳的工作 */
         // 1. 任期号跟Leader同步
-        consensusState.getTerm().set(request.getTerm());
+        consensusState.getCurrTerm().set(request.getTerm());
 
         // 2. 状态变更为Follower
         consensusState.setCharacter(Character.Follower);
@@ -123,7 +157,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         if (!isPresent) {
             log.info("一致性检查失败");
             return AppendEntryResponse.builder()
-                    .term(consensusState.getTerm().get())
+                    .term(consensusState.getCurrTerm().get())
                     .isSuccess(false)
                     .build();
         }
@@ -135,7 +169,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             return AppendEntryResponse.builder()
                     .isHeartBeat(true)
                     .matchIndex(consensusState.getLogModule().getLastLogIndex())
-                    .term(consensusState.getTerm().get())
+                    .term(consensusState.getCurrTerm().get())
                     .isSuccess(true)
                     .build();
         } else {
@@ -145,7 +179,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             log.info("复制日志" + consensusState.getLogModule().getLogEntries().toString());
             // 加入leader给的日志体之后，matchIndex会发生变化
             return AppendEntryResponse.builder()
-                    .term(consensusState.getTerm().get())
+                    .term(consensusState.getCurrTerm().get())
                     .isSuccess(true)
                     .isHeartBeat(false)
                     .matchIndex(consensusState.getLogModule().getLastLogIndex())
@@ -176,7 +210,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         // 2. 当前leader中直接插入指令
         LogEntry logEntry = LogEntry.builder()
-                .term(consensusState.getTerm().get())
+                .term(consensusState.getCurrTerm().get())
                 .logIndex(consensusState.getLogModule().getLastLogIndex() + 1)
                 .body(new LogBody(key ,val))
                 .build();

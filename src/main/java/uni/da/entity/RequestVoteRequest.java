@@ -13,11 +13,16 @@ import java.io.Serializable;
 @Builder
 @ToString
 public class RequestVoteRequest implements Serializable {
+
+    // candidate’s term
     int term;
 
+    // candidate that requesting vote
     int candidateId;
 
+    // index of candidate’s last log entry
     int lastLogIndex;
 
+    // term of candidate’s last log entry
     int lastLogTerm;
 }

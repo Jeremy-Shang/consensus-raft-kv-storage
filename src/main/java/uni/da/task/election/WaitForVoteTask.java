@@ -36,7 +36,7 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
     @Override
     public EventType call() throws Exception {
         // 节点增加自己任期，并进入候选人状态
-        consensusState.getTerm().incrementAndGet();
+        consensusState.getCurrTerm().incrementAndGet();
         consensusState.setCharacter(Character.Candidate);
         LogUtil.printBoxedMessage(consensusState.getName() + " start election !");
         Map<Integer, RaftRpcService> remoteServiceMap = this.consensusState.getRemoteServiceMap();
@@ -48,7 +48,7 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
         for(Integer id: remoteServiceMap.keySet()) {
 
             RequestVoteRequest requestVoteRequest = RequestVoteRequest.builder()
-                    .term(consensusState.getTerm().get())
+                    .term(consensusState.getCurrTerm().get())
                     .candidateId(consensusState.getId())
                     .lastLogIndex(consensusState.getLogModule().getLastLogIndex())
                     .lastLogTerm(consensusState.getLogModule().getLastLogTerm())
@@ -60,7 +60,7 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
                 public void run() {
                     try {
                         RequestVoteResponse response = remoteServiceMap.get(id).requestVote(requestVoteRequest);
-                        if (response.isVote()) {
+                        if (response.isVoteGranted()) {
                             log.info(" ------> Get vote from: " + "Node " + id);
                             votes.countDown();
                         }

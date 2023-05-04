@@ -13,9 +13,7 @@ import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.entity.AppendEntryRequest;
 import uni.da.remote.RaftRpcService;
-import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
-import uni.da.util.LogUtil;
 
 @Slf4j
 public class BroadcastTask extends AbstractRaftTask {
@@ -66,7 +64,7 @@ public class BroadcastTask extends AbstractRaftTask {
 
                     // 构造广播消息
                     AppendEntryRequest request = AppendEntryRequest.builder()
-                            .term(consensusState.getTerm().get())           // 当前任期
+                            .term(consensusState.getCurrTerm().get())           // 当前任期
                             .leaderId(consensusState.getId())               // leader id
                             .prevLogIndex(prevLogIndex)
                             .preLogTerm(preLogTerm)

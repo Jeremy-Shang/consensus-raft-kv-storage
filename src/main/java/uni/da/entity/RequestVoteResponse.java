@@ -13,7 +13,10 @@ import java.io.Serializable;
 @Builder
 @ToString
 public class RequestVoteResponse implements Serializable {
+
+    // currentTerm, for candidate to update itself
     int term;
 
-    boolean isVote;
+    // true means candidate received vote
+    boolean voteGranted;
 }

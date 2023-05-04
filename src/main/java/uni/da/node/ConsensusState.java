@@ -38,8 +38,6 @@ public class ConsensusState implements Serializable {
     // 超时时长，毫秒
     private final int timeout;
 
-
-
     // 集群中其他所有的节点的配置
     private Map<Integer, Addr> clusterAddr;
 
@@ -53,16 +51,59 @@ public class ConsensusState implements Serializable {
     private ExecutorService nodeExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
 
 
-    /** 节点动态参数 */
-    // 初始化任期为1
-    public AtomicInteger term = new AtomicInteger(1);
+
+
+
+
+    /** Persistent state on all servers */
+
+    // latest term server has seen (initialized to 0 on first boot, increases monotonically)
+    public AtomicInteger currTerm = new AtomicInteger(0);
+
+    // candidateId that received vote in current term (or null if none)
+    public volatile Integer votedFor = null;
+
+    // log entries; each entry contains command for state machine, and term when entry was received by leader (first index is 1)
+    private volatile LogModule logModule;
+
+
+    /** Volatile state on all servers */
+
+    /**
+     * 1. commitIndex: index of highest log entry known to be
+     *  committed (initialized to 0, increases
+     *  monotonically)
+     *
+     *  Obtain from Logmodule
+     */
+
+    /**
+     * 2. lastApplied
+     * index of highest log entry applied to state
+     * machine (initialized to 0, increases
+     * monotonically)
+     */
+
+    /**
+     * for each server, index of the next log entry
+     * to send to that server (initialized to leader
+     * last log index + 1)
+     */
+    private Map<Integer, Integer> nextIndex = new HashMap<>();
+
+
+    /**
+     * for each server, index of the highest log entry
+     * known to be replicated on server
+     * (initialized to 0, increases monotonically)
+     */
+    private Map<Integer, Integer> matchIndex = new HashMap<>();
+
+
 
     // 集群leader id
     public AtomicInteger leaderId = new AtomicInteger(-1);
 
-
-    // 日志模块 （包含日志体）
-    private volatile LogModule logModule;
 
     // 节点角色
     private volatile Character character = Character.Follower;
@@ -70,58 +111,28 @@ public class ConsensusState implements Serializable {
     // 每个任期投票历史，并发稳定读写不可抢占
     private volatile ConcurrentHashMap<Integer, Integer> voteHistory = new ConcurrentHashMap<>();
 
-    // 无并发问题
-    // 作为leader，下一个该给节点发送什么index日志
-    private Map<Integer, Integer> nextIndex = new HashMap<>();
 
 
-    // 作为leader，对面节点目前复制到的最高日志信息
-    private Map<Integer, Integer> matchIndex = new HashMap<>();
-
-
-
-    public ConsensusState(int id, String name, Addr addr, int timeout) throws IOException {
+    public ConsensusState(int id, String name, Addr addr, int timeout, Map<Integer, Addr> clusterAddr) throws IOException {
         this.id = id;
         this.name = name;
         this.addr = addr;
         this.timeout = timeout;
-
         this.pipe = new Pipe("hearBeat");
-    }
-
-
-
-
-
-
-    private ConsensusState(int id, String name, Addr addr, int[] timeoutRange) throws IOException {
-        this.id = id;
-        this.name = name;
-        this.addr = addr;
-        this.timeout = new Random().nextInt(timeoutRange[1] - timeoutRange[0] + 1) + timeoutRange[0];
-
-        nextIndex.replaceAll((k, v) -> 1);
-        matchIndex.replaceAll((k, v) -> 0);
-
-        this.pipe = new Pipe("hearBeat");
-    }
-
-    public static ConsensusState getInstance(int id, String name, Addr addr, int[] timeoutRange) throws IOException {
-        if (consensusState == null) {
-            consensusState = new ConsensusState(id, name, addr, timeoutRange);
-        }
-        return consensusState;
-    }
-
-    public void setClusterAddr(Map<Integer, Addr> clusterAddr) {
         this.clusterAddr = clusterAddr;
+        restore();
+    }
 
-        // 初始状态下
+
+
+    /**
+     * TODO Restore from persistence state
+     */
+    private void restore() {
         clusterAddr.forEach((k,v) -> {
-            nextIndex.put(k, 1);
+            nextIndex.put(k, this.getLogModule().getPrevLogIndex() + 1);
             matchIndex.put(k, 0);
         });
-
     }
 
 
