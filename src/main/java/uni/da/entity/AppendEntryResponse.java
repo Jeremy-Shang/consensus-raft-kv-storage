@@ -11,11 +11,15 @@ import java.io.Serializable;
 @ToString
 @Data
 public class AppendEntryResponse implements Serializable {
+
+    // currentTerm, for leader to update itself
     int term;
 
-    int matchIndex;
+    // true if follower contained entry matching prevLogIndex and prevLogTerm
+    boolean success;
 
-    boolean isSuccess;
+    // TOOD: May useless
+    int matchIndex;
 
     boolean isHeartBeat;
 

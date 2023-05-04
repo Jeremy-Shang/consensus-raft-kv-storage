@@ -10,7 +10,6 @@ import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.task.BroadcastTask;
-import uni.da.util.LogUtil;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -36,15 +35,9 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     }
 
     /**
-     * 判断是否投票
-     * 原则：一个人只能在同一个任期，给一个人投票
-     *
-     *
      *  1. Reply false if term < currentTerm
      *  2. If votedFor is null or candidateId, and candidate’s log is at
-     * least as up-to-date as receiver’s log, grant vote
-     *
-     *
+     *      least as up-to-date as receiver’s log, grant vote
      * @param request
      * @return
      */
@@ -72,69 +65,53 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                     .build();
         }
 
-
         log.info("[VOTE REJECT (2)] to node{}; ", request.getCandidateId());
 
         return RequestVoteResponse.builder()
                 .term(consensusState.getCurrTerm().get())
                 .voteGranted(false)
                 .build();
-
-
-
-
-
-
-
-
-        // 如果当前也在参选，直接拒绝
-        if (consensusState.getCharacter() == Character.Candidate && request.getCandidateId() != consensusState.getId()) {
-            return reject;
-        }
-
-        // 在该任期投过票了，并且投的候选人不是request中的候选人额
-        if (consensusState.getVoteHistory().containsKey(request.getTerm()) &&
-                consensusState.getVoteHistory().get(request.getTerm()) != request.getCandidateId()) {
-
-            LogUtil.printBoxedMessage("reject to vote node (already vote)"
-                    + request.getCandidateId()
-                    + " at its term: " + request.getTerm() + " vote history: " + consensusState.getVoteHistory().toString());
-
-            return reject;
-        }
-
-        // 如果是自己给自己投 或者 如果自己是follower, 并且对面任期不小于自己，投票
-        if (request.getCandidateId() == consensusState.getId() || (consensusState.getCharacter() == Character.Follower && request.getTerm() >= consensusState.getCurrTerm().get())) {
-
-            LogUtil.printBoxedMessage("vote to node " + request.getCandidateId() + " at its term " + request.getTerm()+ " vote history: " + consensusState.getVoteHistory().toString());
-
-            /** 加入投票历史，表示在这一轮投了谁 */
-            consensusState.getVoteHistory().put(request.getTerm(), request.getCandidateId());
-
-            // 重置超时时间
-            resetTimer();
-
-            return RequestVoteResponse.builder()
-                    .term(consensusState.getCurrTerm().get())
-                    .voteGranted(true)
-                    .build();
-        }
-
-
-        LogUtil.printBoxedMessage("reject to vote node (condition not satisfied)" + request.getCandidateId() + " at its term: " + request.getTerm()+ " vote history: " + consensusState.getVoteHistory().toString());
-
-        // 否则拒绝投票
-        return reject;
     }
 
+
     /**
-     * 心跳和追加日志逻辑
-     *
+     * 1. Reply false if term < currentTerm (§5.1)
+     * 2. Reply false if log doesn’t contain an entry at prevLogIndex
+     * whose term matches prevLogTerm (§5.3)
+     * 3. If an existing entry conflicts with a new one (same index
+     * but different terms), delete the existing entry and all that
+     * follow it (§5.3)
+     * 4. Append any new entries not already in the log
+     * 5. If leaderCommit > commitIndex, set commitIndex =
+     * min(leaderCommit, index of last new entry)
      * @param request
      * @return
      */
     @Override
     public AppendEntryResponse appendEntry(AppendEntryRequest request) {
+
+        if (request.getTerm() < consensusState.getCurrTerm().get()) {
+            log.info("[REJECT APPEND ENTRY (1)] from node{}, currTerm {}, senderTerm {}", consensusState.getCurrTerm().get(), request.getTerm());
+            return AppendEntryResponse.builder()
+                    .term(consensusState.getCurrTerm().get())
+                    .success(false)
+                    .build();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         /** 维持心跳的工作 */
         // 1. 任期号跟Leader同步
         consensusState.getCurrTerm().set(request.getTerm());
@@ -158,7 +135,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             log.info("一致性检查失败");
             return AppendEntryResponse.builder()
                     .term(consensusState.getCurrTerm().get())
-                    .isSuccess(false)
+                    .success(false)
                     .build();
         }
 
@@ -170,7 +147,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                     .isHeartBeat(true)
                     .matchIndex(consensusState.getLogModule().getLastLogIndex())
                     .term(consensusState.getCurrTerm().get())
-                    .isSuccess(true)
+                    .success(true)
                     .build();
         } else {
 
@@ -180,7 +157,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             // 加入leader给的日志体之后，matchIndex会发生变化
             return AppendEntryResponse.builder()
                     .term(consensusState.getCurrTerm().get())
-                    .isSuccess(true)
+                    .success(true)
                     .isHeartBeat(false)
                     .matchIndex(consensusState.getLogModule().getLastLogIndex())
                     .build();
@@ -259,20 +236,24 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     }
 
 
-    @Override
-    public void sayHi() {
-        log.info("hi");
-    }
 
 
-
+    /**
+     * Reset timer for listening heartbeat task
+     */
     private void resetTimer() {
-        // 3. 解除阻塞，继续监听心跳
         try {
-//            log.info("解除阻塞，监听心跳");
             this.consensusState.getPipe().getOutputStream().write(1);
         } catch (IOException e) {
-            log.error("写入管道失败");
+            log.error("Maintain heartBeat fail: node{}", consensusState.getId());
         }
     }
+
+
+
+    @Override
+    public void sayHi() {
+        log.info("Hello World !!!!!!!!!!!!!!!!");
+    }
+
 }

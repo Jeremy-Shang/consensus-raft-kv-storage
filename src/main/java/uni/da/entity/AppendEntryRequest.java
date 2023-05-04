@@ -12,16 +12,22 @@ import java.io.Serializable;
 @Data
 public class AppendEntryRequest implements Serializable {
 
+    // leader’s term
     int term;
 
+    // so follower can redirect clients
     int leaderId;
 
+    // index of log entry immediately preceding new ones
     int prevLogIndex;
 
+    // term of prevLogIndex entry
     int preLogTerm;
 
+    // TODO: log entries to store empty for heartBeat (currently  null for hearbeat)
     LogEntry logEntry;
 
+    // leader’s commitIndex
     int leaderCommit;
 
 }
