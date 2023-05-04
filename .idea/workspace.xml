@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="0e00c272-373f-40cd-bbcd-69e187132960" name="Changes" comment="update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/uni/da/util/StateManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/uni/da/util/StateManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/uni/da/statemachine/RaftStateMachine.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/uni/da/statemachine/RaftStateMachine.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

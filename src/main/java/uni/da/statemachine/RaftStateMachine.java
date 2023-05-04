@@ -87,52 +87,56 @@ public class RaftStateMachine implements Runnable {
     }
 
 
-    /*
-        状态机状态注册
+    /**
+     * Sets up the state machine.
      */
     private void stateTransferRegistry() {
         StateMachineFactory<Context, RaftState, EventType, Event> stateMachineFactory = new StateMachineFactory<>();
 
-        // 心跳监听 -> 成功 = 心跳监听
+        // Received heartbeat from the leader -> continue to receive heartbeats
         stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.LISTENING_HEARTBEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.LISTENING_HEARTBEAT;
         });
-        // 心跳监听 -> 失败 = 选举
-        stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.FAIL, (o, e ) -> {
-            return RaftState.ELECTION;
-        });
-        // 心跳监听 -> 超时 = 选举
+
+//        // 心跳监听 -> 失败 = 选举
+//        stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.FAIL, (o, e ) -> {
+//            return RaftState.ELECTION;
+//        });
+
+        // does not receive a heartbeat within election timeout -> starts a new election
         stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.TIME_OUT, (o, e ) -> {
             return RaftState.ELECTION;
         });
 
 
-        // 选举 -> 成功 = 心跳
+        // receives votes from the majority of servers -> becomes leader and starts sending heartbeats
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.HEAR_BEAT;
         });
-        // 选举 -> 失败 = 心跳监听
+
+        // election failed -> convert to follower
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.LISTENING_HEARTBEAT, EventType.FAIL, (o, e ) -> {
             return RaftState.LISTENING_HEARTBEAT;
         });
-        // 选举 -> 超时 = 选举
-        stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.LISTENING_HEARTBEAT, EventType.TIME_OUT, (o, e ) -> {
-            return RaftState.LISTENING_HEARTBEAT;
+
+        // timeout -> start a new election
+        stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.ELECTION, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.ELECTION;
         });
 
-
-
-        // 心跳 -> 成功 = 心跳
+        // sends a heartbeat successfully -> continues to send heartbeat messages
         stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.HEAR_BEAT;
         });
-        // 心跳 -> 失败 = 继续心跳
-        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.LISTENING_HEARTBEAT, EventType.FAIL, (o, e ) -> {
-            return RaftState.LISTENING_HEARTBEAT;
+
+        // sending heartbeat message failed -> continues to send heartbeat messages
+        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.FAIL, (o, e ) -> {
+            return RaftState.HEAR_BEAT;
         });
-        // 心跳 -> 超时 = 继续心跳
-        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.LISTENING_HEARTBEAT, EventType.TIME_OUT, (o, e ) -> {
-            return RaftState.LISTENING_HEARTBEAT;
+
+        // timeout -> continues to send heartbeat messages
+        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.HEAR_BEAT;
         });
 
 
