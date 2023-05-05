@@ -15,5 +15,5 @@ public class LogEntry implements Serializable {
 
     int logIndex;
 
-    LogBody body;
+    Command body;
 }

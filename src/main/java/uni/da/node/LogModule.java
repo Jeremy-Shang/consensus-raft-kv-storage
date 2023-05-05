@@ -1,6 +1,5 @@
 package uni.da.node;
 
-import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
 
 import java.util.concurrent.CopyOnWriteArrayList;

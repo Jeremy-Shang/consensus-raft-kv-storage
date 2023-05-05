@@ -3,12 +3,11 @@ package uni.da.remote.impl;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import uni.da.entity.*;
-import uni.da.entity.Log.LogBody;
+import uni.da.entity.Log.Command;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
-import uni.da.statemachine.fsm.component.Event;
 import uni.da.statemachine.fsm.component.EventType;
 import uni.da.task.BroadcastTask;
 import uni.da.util.LogUtil;
@@ -24,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Data
@@ -183,7 +181,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         LogEntry logEntry = LogEntry.builder()
                 .term(consensusState.getTerm().get())
                 .logIndex(consensusState.getLogModule().getLastLogIndex() + 1)
-                .body(new LogBody(key ,val))
+                .body(new Command(key ,val))
                 .build();
 
         consensusState.getLogModule().append(logEntry);

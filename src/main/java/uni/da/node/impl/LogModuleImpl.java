@@ -4,12 +4,10 @@ import lombok.Data;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
-import uni.da.entity.Log.LogBody;
+import uni.da.entity.Log.Command;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.LogModule;
 
-import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -22,7 +20,7 @@ public class LogModuleImpl implements LogModule {
 
     // 日志队列
     private CopyOnWriteArrayList<LogEntry> logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-            new LogEntry(1, 0, new LogBody(-1, "fake"))
+            new LogEntry(1, 0, new Command(-1, "fake"))
     });
     
     @Override
