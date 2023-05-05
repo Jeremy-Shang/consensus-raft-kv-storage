@@ -20,7 +20,6 @@ import java.util.concurrent.CountDownLatch;
  */
 @Slf4j
 class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
-
     Object sign;
 
     CountDownLatch latch;
@@ -32,7 +31,6 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
 
         this.latch = latch;
     }
-
 
     /**
      * On conversion to candidate, start election:

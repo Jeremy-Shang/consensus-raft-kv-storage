@@ -29,28 +29,29 @@ import java.util.concurrent.CountDownLatch;
 @Slf4j
 @Data
 public class NodeModuleImpl implements Node {
-
     private static NodeModuleImpl nodeImpl = null;
 
     private ConsensusState consensusState;
 
-    private LogModule logModule;
-
     CountDownLatch countDownLatch;
 
 
-
-    /**
-     * 单例构造函数
-     * @param consensusState
-     * @throws IOException
-     */
     private NodeModuleImpl(ConsensusState consensusState) throws IOException {
 
         this.consensusState = consensusState;
 
-        /** 设置日志体，恢复当前任期号码*/
-        this.consensusState.setLogModule(new LogModuleImpl(String.valueOf(consensusState.getId())));
+//        /** 设置日志体，恢复当前任期号码*/
+//        this.consensusState.setLogModule(new LogModuleImpl(String.valueOf(consensusState.getId())));
+
+
+
+
+
+
+
+
+
+
 
 
         log.info("size" + String.valueOf(consensusState.getLogModule().getLogEntries().size()));
@@ -63,14 +64,12 @@ public class NodeModuleImpl implements Node {
         return NodeModuleImpl.nodeImpl;
     }
 
-
-
-
     /**
      *
      * @throws InterruptedException
      */
     public void start() throws InterruptedException, IOException {
+
         log.info("Node[{}] start at {}:{}.", consensusState.getCharacter() , consensusState.getAddr().getIp(), consensusState.getAddr().getPort());
 
         int memberNum = consensusState.getClusterAddr().size();
@@ -162,7 +161,6 @@ public class NodeModuleImpl implements Node {
 
             for(int count=1; ; count++){
                 try {
-                    // 获取远程节点提供服务接口
 
                     String host = addr.getIp();
                     int port = addr.getPort();
@@ -171,7 +169,6 @@ public class NodeModuleImpl implements Node {
                     Registry registry = LocateRegistry.getRegistry(host, port);
                     RaftRpcService remoteObject = (RaftRpcService) registry.lookup(name);
 
-                    // 保存在 id: service 中
                     remoteServiceMap.put(id, remoteObject);
 
                     countDownLatch.countDown();

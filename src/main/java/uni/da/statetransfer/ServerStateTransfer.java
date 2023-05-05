@@ -20,7 +20,6 @@ import java.util.concurrent.*;
 @Slf4j
 @Data
 public class ServerStateTransfer implements Runnable {
-
     private Map<RaftState, Callable<EventType>> taskMap = new ConcurrentHashMap<>();
 
     private StateMachine<RaftState, EventType, Event> stateMachine;
@@ -28,7 +27,6 @@ public class ServerStateTransfer implements Runnable {
     private RaftState raftState = RaftState.LISTENING_HEARTBEAT;
 
     private ConsensusState consensusState;
-
 
     public ServerStateTransfer(ConsensusState consensusState) throws IOException {
 
@@ -43,13 +41,11 @@ public class ServerStateTransfer implements Runnable {
         stateTransferRegistry();
     }
 
-
     /**
      *
      */
     @Override
     public void run() {
-
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
         while (!Thread.currentThread().isInterrupted()) {

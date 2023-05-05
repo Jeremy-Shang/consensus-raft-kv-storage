@@ -65,12 +65,13 @@ public class BroadcastTask extends AbstractRaftTask {
                      * AppendEntries RPC with log entries starting at nextIndex
                      */
                     int nextLogIndex = consensusState.getNextIndex().get(sid);
-                    int prevLogIndex = consensusState.getLogModule().getPrevLogIndex();
-                    int preLogTerm = consensusState.getLogModule().getPrevLogTerm();
+                    int prevLogIndex = nextLogIndex - 1;
+                    int preLogTerm = consensusState.getLogModule().getEntryByIndex(prevLogIndex).getTerm();
 
                     if (consensusState.getLogModule().getLastLogIndex() > nextLogIndex) {
 
                         LogEntry logEntry = consensusState.getLogModule().getEntryByIndex(nextLogIndex);
+
                         request = AppendEntryRequest.builder()
                                 .term(consensusState.getCurrTerm().get())
                                 .leaderId(consensusState.getId())

@@ -78,10 +78,8 @@ public class RaftClusterApp {
         clusterAddr.put(4, new Addr(ip, 6669));
 //        clusterAddr.put(5, new Addr(ip, 6670));
 
-//        NodeParam nodeParam = NodeParam.getInstance(id, "node"+id, new Addr(ip, port), new int[]{300, 500});
 
-        ConsensusState consensusState = new ConsensusState(id, "node"+id, new Addr(ip, port), timeout, clusterAddr);
-
+        ConsensusState consensusState = ConsensusState.getInstance(id, "node"+id, new Addr(ip, port), timeout, clusterAddr);
 
         Node node = NodeModuleImpl.getInstance(consensusState);
 

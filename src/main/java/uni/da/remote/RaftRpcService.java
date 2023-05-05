@@ -2,13 +2,11 @@ package uni.da.remote;
 
 import uni.da.entity.*;
 import uni.da.entity.Log.LogEntry;
-import uni.da.node.ConsensusState;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
-
 
 /*
     每个Raft节点实际提供的服务

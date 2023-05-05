@@ -10,5 +10,4 @@ public interface Node extends RaftModule{
     void put(Object key, Object value);
 
     void get(Object key);
-
 }

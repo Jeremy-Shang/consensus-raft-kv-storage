@@ -2,8 +2,13 @@ package uni.da.node;
 
 
 import lombok.*;
+import redis.clients.jedis.Jedis;
 import uni.da.common.Addr;
-import uni.da.common.Pipe;
+import uni.da.common.RedisDb;
+import uni.da.common.Timer;
+import uni.da.entity.Log.LogBody;
+import uni.da.node.impl.LogModuleImpl;
+import uni.da.node.impl.StateMachineImpl;
 import uni.da.remote.RaftRpcService;
 
 import java.io.IOException;
@@ -41,7 +46,7 @@ public class ConsensusState implements Serializable {
     private final Integer clusterSize;
 
     // Using pipe's blocking read as timer
-    private Pipe timer;
+    private Timer timer;
     
     // Contain rpc communication method to each node
     private Map<Integer, RaftRpcService> remoteServiceMap;
@@ -60,6 +65,9 @@ public class ConsensusState implements Serializable {
 
     // log entries; each entry contains command for state machine, and term when entry was received by leader (first index is 1)
     private volatile LogModule logModule;
+
+    // TODO: check statemachine usge
+    private volatile StateMachineModule stateMachineModule;
 
 
 
@@ -106,16 +114,29 @@ public class ConsensusState implements Serializable {
     // 每个任期投票历史，并发稳定读写不可抢占
     private volatile ConcurrentHashMap<Integer, Integer> voteHistory = new ConcurrentHashMap<>();
 
-    public ConsensusState(int id, String name, Addr addr, int timeout, Map<Integer, Addr> clusterAddr) throws IOException {
+    private ConsensusState(int id, String name, Addr addr, int timeout, Map<Integer, Addr> clusterAddr) throws IOException {
         this.id = id;
         this.name = name;
         this.addr = addr;
         this.timeout = timeout;
-        this.timer = new Pipe("hearBeat");
+        this.timer = new Timer("election_timeout");
+
         this.clusterAddr = clusterAddr;
         this.clusterSize = clusterAddr.size();
-        restore();
+
+        this.logModule = new LogModuleImpl(String.valueOf(id));
+        this.stateMachineModule = new StateMachineImpl(String.valueOf(id));
+
     }
+
+    public static synchronized ConsensusState getInstance(int id, String name, Addr addr, int timeout, Map<Integer, Addr> clusterAddr) throws IOException {
+        if (ConsensusState.consensusState == null)  {
+            ConsensusState.consensusState = new ConsensusState(id ,name, addr, timeout, clusterAddr);
+        }
+
+        return ConsensusState.consensusState;
+    }
+
 
     /**
      * If commitIndex > lastApplied: increment lastApplied, apply
@@ -127,23 +148,13 @@ public class ConsensusState implements Serializable {
         this.commitIndex.set(newCommitIndex);
 
         if (this.commitIndex.get() > this.lastApplied.get()) {
-
             this.lastApplied.incrementAndGet();
 
-            this.logModule.apply(this.lastApplied.get());
         }
 
-    }
+        LogBody logBody = this.logModule.getEntryByIndex(newCommitIndex).getBody();
 
-    /**
-     * TODO Restore from persistence state
-     */
-    private void restore() {
-        clusterAddr.forEach((k,v) -> {
-            nextIndex.put(k, this.getLogModule().getPrevLogIndex() + 1);
-            matchIndex.put(k, 0);
-        });
+        this.stateMachineModule.commit(logBody);
     }
-
 
 }

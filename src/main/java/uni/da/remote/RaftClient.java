@@ -8,7 +8,6 @@ import java.util.concurrent.ExecutionException;
 
 public interface RaftClient {
 
-
     public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException;
 
 

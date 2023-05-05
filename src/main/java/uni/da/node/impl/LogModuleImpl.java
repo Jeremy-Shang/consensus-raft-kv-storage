@@ -2,8 +2,7 @@ package uni.da.node.impl;
 
 import lombok.Data;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import redis.clients.jedis.Jedis;
 import uni.da.common.RedisDb;
 import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
@@ -13,19 +12,29 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-
 @Data
-@RequiredArgsConstructor
 public class LogModuleImpl implements LogModule {
 
-    @NonNull String nodeId;
+    String nodeId;
 
-    /**
-     * first Index is 1. Index 0 contains fake data
-     */
-    private CopyOnWriteArrayList<LogEntry> logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-            new LogEntry(1, 0, new LogBody(-1, "fake"))
-    });
+    String name;
+
+    private CopyOnWriteArrayList<LogEntry> logEntries;
+
+    public LogModuleImpl(String id) {
+        this.nodeId = id;
+        this.name = this.nodeId + "-logs";
+
+        Jedis jedis = RedisDb.getJedis();
+        if (jedis.exists(name)) {
+            logEntries = (CopyOnWriteArrayList<LogEntry>) RedisDb.getJsonObject(name, CopyOnWriteArrayList.class);
+        } else {
+            // first Index is 1. Index 0 contains fake data
+            logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
+                    new LogEntry(1, 0, new LogBody(-1, "fake"))
+            });
+        }
+    }
 
     @Override
     public LogEntry getLogEntry(int index, int term) {
@@ -64,20 +73,10 @@ public class LogModuleImpl implements LogModule {
     }
 
     @Override
-    public int getPrevLogIndex() {
-        return 0;
-    }
-
-    @Override
-    public int getPrevLogTerm() {
-        return 0;
-    }
-
-    @Override
     public synchronized void append(LogEntry logEntry) {
         logEntries.add(logEntry);
 
-        RedisDb.setJsonString(nodeId + "-logs", logEntries);
+        RedisDb.setJsonString(name, logEntries);
     }
 
     @Override

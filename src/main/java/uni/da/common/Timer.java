@@ -1,7 +1,6 @@
 package uni.da.common;
 
 
-import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -11,17 +10,13 @@ import java.io.PipedOutputStream;
 
 @Data
 @Slf4j
-public class Pipe {
-
+public class Timer {
     private String name;
     private final PipedOutputStream outputStream;
 
     private final PipedInputStream inputStream;
 
-    /*
-       双端管道, 用来监听
-     */
-    public Pipe(String name) throws IOException {
+    public Timer(String name) throws IOException {
         this.name = name;
         this.outputStream = new PipedOutputStream();
         this.inputStream = new PipedInputStream(outputStream);

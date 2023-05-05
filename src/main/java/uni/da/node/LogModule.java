@@ -11,10 +11,6 @@ public interface LogModule extends RaftModule{
 
     public int getLastLogTerm();
 
-    public int getPrevLogIndex();
-
-    public int getPrevLogTerm();
-
     public void append(LogEntry logEntry);
 
     public CopyOnWriteArrayList<LogEntry> getLogEntries();
