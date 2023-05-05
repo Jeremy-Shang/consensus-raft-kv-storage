@@ -17,7 +17,7 @@ public class ClientRequest implements Serializable {
     // 0: put 1: get
     int TYPE;
 
-    int key;
+    String key;
 
     String val;
 

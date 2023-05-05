@@ -1,5 +1,6 @@
 package uni.da.app;
 
+import uni.da.RaftClusterApp;
 import uni.da.entity.Log.Command;
 import uni.da.entity.Method;
 import uni.da.entity.Result;
@@ -25,7 +26,8 @@ public class StateMachine {
         cache = new HashMap<>();
         sequence = 1;
         try {
-            File file  = new File("uni/da/data_"+id+".txt");
+//            RaftClusterApp.class.getResource("/raft.yaml").getPath();
+            File file  = new File("data_"+id+".txt");
             file.createNewFile();       // just in case
             randomAccessFile =  new RandomAccessFile(file,"rw");
         } catch (IOException e) {

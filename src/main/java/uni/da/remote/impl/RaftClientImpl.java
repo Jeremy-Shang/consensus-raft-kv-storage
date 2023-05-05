@@ -71,13 +71,14 @@ public class RaftClientImpl implements RaftClient {
 
                 put(ClientRequest.builder()
                         .TYPE(0)
-                        .key(key)
+                        .key(String.valueOf(key))
                         .val(val).build());
             } else if (command.equals("get")) {
                 int key = scanner.nextInt();
                 get(ClientRequest.builder()
                         .TYPE(1)
-                        .key(key).build());
+                        .key(String.valueOf(key))
+                        .build());
             }
         }
     }

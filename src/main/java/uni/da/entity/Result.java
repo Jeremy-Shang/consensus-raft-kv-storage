@@ -13,7 +13,7 @@ public class Result {
         this.status = status;
     }
 
-    public boolean isStatus() {
+    public boolean getStatus() {
         return status;
     }
 

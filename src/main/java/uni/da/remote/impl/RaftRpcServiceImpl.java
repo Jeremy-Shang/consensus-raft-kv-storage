@@ -169,7 +169,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         }
 
 
-        int key = request.getKey();
+        String key = request.getKey();
         String val = request.getVal();
 
         // 2. TODO 重定向到leader
@@ -181,7 +181,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         LogEntry logEntry = LogEntry.builder()
                 .term(consensusState.getTerm().get())
                 .logIndex(consensusState.getLogModule().getLastLogIndex() + 1)
-                .body(new Command(key ,val))
+                .body(new Command(Method.GET, key ,val))
                 .build();
 
         consensusState.getLogModule().append(logEntry);

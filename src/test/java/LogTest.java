@@ -11,41 +11,41 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LogTest {
     private static final Logger logger = LogManager.getLogger(LogTest.class);
-    public static void main(String[] args) {
-
-
-        logger.info("info");
-        logger.debug("debug");
-        logger.error("error");
-        logger.trace("trace");
-        logger.warn("warn");
-
-
-
-        Map<Integer, List<LogEntry>> records = new HashMap<>();
-
-// 初始化id为1的记录
-        List<LogEntry> entries1 = new ArrayList<>();
-        entries1.add(new LogEntry(1, 1, new Command(1, "value1")));
-        entries1.add(new LogEntry(1, 2, new Command(2, "value2")));
-        entries1.add(new LogEntry(1, 3, new Command(3, "value3")));
-        records.put(1, entries1);
-
-// 初始化id为2的记录
-        List<LogEntry> entries2 = new ArrayList<>();
-        entries2.add(new LogEntry(2, 1, new Command(4, "value4")));
-        entries2.add(new LogEntry(2, 2, new Command(5, "value5")));
-        records.put(2, entries2);
-
-// 初始化id为3的记录
-        List<LogEntry> entries3 = new ArrayList<>();
-        entries3.add(new LogEntry(3, 1, new Command(6, "value6")));
-        entries3.add(new LogEntry(3, 2, new Command(7, "value7")));
-        entries3.add(new LogEntry(3, 3, new Command(8, "value8")));
-        records.put(3, entries3);
-
-        printTable(records);
-    }
+//    public static void main(String[] args) {
+//
+//
+//        logger.info("info");
+//        logger.debug("debug");
+//        logger.error("error");
+//        logger.trace("trace");
+//        logger.warn("warn");
+//
+//
+//
+//        Map<Integer, List<LogEntry>> records = new HashMap<>();
+//
+//// 初始化id为1的记录
+//        List<LogEntry> entries1 = new ArrayList<>();
+//        entries1.add(new LogEntry(1, 1, new Command(1, "value1")));
+//        entries1.add(new LogEntry(1, 2, new Command(2, "value2")));
+//        entries1.add(new LogEntry(1, 3, new Command(3, "value3")));
+//        records.put(1, entries1);
+//
+//// 初始化id为2的记录
+//        List<LogEntry> entries2 = new ArrayList<>();
+//        entries2.add(new LogEntry(2, 1, new Command(4, "value4")));
+//        entries2.add(new LogEntry(2, 2, new Command(5, "value5")));
+//        records.put(2, entries2);
+//
+//// 初始化id为3的记录
+//        List<LogEntry> entries3 = new ArrayList<>();
+//        entries3.add(new LogEntry(3, 1, new Command(6, "value6")));
+//        entries3.add(new LogEntry(3, 2, new Command(7, "value7")));
+//        entries3.add(new LogEntry(3, 3, new Command(8, "value8")));
+//        records.put(3, entries3);
+//
+//        printTable(records);
+//    }
 
     public static void printTable(Map<Integer, List<LogEntry>> records) {
         // 获取所有记录的logIndex集合

@@ -20,7 +20,7 @@ public class LogModuleImpl implements LogModule {
 
     // 日志队列
     private CopyOnWriteArrayList<LogEntry> logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-            new LogEntry(1, 0, new Command(-1, "fake"))
+
     });
     
     @Override
