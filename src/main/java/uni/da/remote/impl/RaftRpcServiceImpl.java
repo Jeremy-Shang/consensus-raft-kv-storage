@@ -175,31 +175,13 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        // TODO
         try {
             future.get();
         } catch (Exception e) {
-            log.error("任务失败");
+            log.error("fail");
         }
 
-        // 4. 客户端回显数据
         Map<Integer, List<LogEntry>> clientEcho = new HashMap<>();
 
         for(Integer k: consensusState.getRemoteServiceMap().keySet()) {
@@ -210,24 +192,24 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             try {
                 logEntries = s.gatherClusterLogEntries();
             } catch (Exception e) {
-                log.error("获取节点日志失败");
+                log.error("fail");
             }
             clientEcho.put(k, new ArrayList<>(logEntries));
         }
 
-        // 4. TODO 客户端需要回显
         return ClientResponse.success(clientEcho);
     }
 
+
+
     /**
-     * 客户端回显，获取所有节点log状态
+     * Client echo
      * @return
      */
     @Override
     public CopyOnWriteArrayList<LogEntry> gatherClusterLogEntries() {
         return consensusState.getLogModule().getLogEntries();
     }
-
 
 
     /**

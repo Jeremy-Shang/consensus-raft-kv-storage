@@ -9,19 +9,16 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * FSM 工厂
- *
- * @param <O> O operand 操作数类型
- * @param <S> S 状态机状态枚举类型
- * @param <T> T 事件类型
- * @param <E> E 事件
- * @author
+ * FSM factory
+ * @param <O>
+ * @param <S>
+ * @param <T>
+ * @param <E>
  */
 public final class StateMachineFactory<O, S extends Enum<S>, T extends Enum<T>, E> {
 
     /**
-     * 通过当前状态和事件类型获取用户注册的四元组
-     * 状态 State(S) + Event(E, EventType(T)) + Operator(O)  -> State(S)'
+     * State(S) + Event(E, EventType(T)) + Operator(O)  -> State(S)'
      */
     private final Map<S, Map<T, Transition<O, E, S>>> transitionMachineTable = new HashMap<>();
 

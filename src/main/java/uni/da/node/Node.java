@@ -6,7 +6,6 @@ package uni.da.node;
  */
 public interface Node extends RaftModule{
 
-    // Client 功能
     void put(Object key, Object value);
 
     void get(Object key);

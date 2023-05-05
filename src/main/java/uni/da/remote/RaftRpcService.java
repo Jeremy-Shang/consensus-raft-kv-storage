@@ -8,8 +8,8 @@ import java.rmi.RemoteException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 
-/*
-    每个Raft节点实际提供的服务
+/**
+ * Raft rpc service
  */
 public interface RaftRpcService extends Remote {
 

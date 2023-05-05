@@ -33,25 +33,13 @@ public class NodeModuleImpl implements Node {
 
     private ConsensusState consensusState;
 
-    CountDownLatch countDownLatch;
+    private final String remoteServiceName = "RaftRpcService";
 
+    CountDownLatch latch;
 
     private NodeModuleImpl(ConsensusState consensusState) throws IOException {
 
         this.consensusState = consensusState;
-
-//        /** 设置日志体，恢复当前任期号码*/
-//        this.consensusState.setLogModule(new LogModuleImpl(String.valueOf(consensusState.getId())));
-
-
-
-
-
-
-
-
-
-
 
 
         log.info("size" + String.valueOf(consensusState.getLogModule().getLogEntries().size()));
@@ -73,24 +61,19 @@ public class NodeModuleImpl implements Node {
         log.info("Node[{}] start at {}:{}.", consensusState.getCharacter() , consensusState.getAddr().getIp(), consensusState.getAddr().getPort());
 
         int memberNum = consensusState.getClusterAddr().size();
-        /** RPC注册*/
-        // 等待RPC集群接口注册完毕
-        countDownLatch = new CountDownLatch(memberNum);
 
+
+        /** Rpc service registry and gather*/
+        latch = new CountDownLatch(memberNum);
         remoteRegistry();
-
-        // 阻塞, 直到集群注册完毕
-        countDownLatch.await();
+        latch.await();
 
 
-
-        /** 启动状态机流转*/
+        /** Start server state transfer*/
         Thread stateMachine = new Thread(new ServerStateTransfer(consensusState));
         stateMachine.start();
 
-        /** client */
 
-        // 主线程阻塞
         stateMachine.join();
     }
 
@@ -111,7 +94,7 @@ public class NodeModuleImpl implements Node {
     }
 
     /**
-     *  远程服务注册
+     *  Remote service
      */
     private void remoteRegistry() throws InterruptedException {
         Thread client = new Thread(() -> {
@@ -144,14 +127,13 @@ public class NodeModuleImpl implements Node {
         RaftRpcService raftRpcService = new RaftRpcServiceImpl(consensusState);
 
         Registry registry = LocateRegistry.createRegistry(consensusState.getAddr().getPort());
-        registry.rebind("RaftRpcService", raftRpcService);
+        registry.rebind(remoteServiceName, raftRpcService);
 
-        log.info("注册本地节点服务成功");
+        log.info("[REMOTE REGISTRY] node{}: Local remote service registration success", consensusState.getId());
 
     }
 
     private void remoteClientRegistry() throws InterruptedException, RemoteException, NotBoundException {
-        log.info("加载集群远程服务...");
 
         Map<Integer, Addr> clusterAddr = consensusState.getClusterAddr();
         Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
@@ -164,22 +146,22 @@ public class NodeModuleImpl implements Node {
 
                     String host = addr.getIp();
                     int port = addr.getPort();
-                    String name = "RaftRpcService";
+
 
                     Registry registry = LocateRegistry.getRegistry(host, port);
-                    RaftRpcService remoteObject = (RaftRpcService) registry.lookup(name);
+                    RaftRpcService remoteObject = (RaftRpcService) registry.lookup(remoteServiceName);
 
                     remoteServiceMap.put(id, remoteObject);
 
-                    countDownLatch.countDown();
+                    latch.countDown();
 
-                    log.info("获取远程服务成功: {}", addr.toString());
+                    log.info("[REMOTE GATHER SUCCESS] Get remote service {}. ", addr.toString());
 
                     break;
                 } catch (Exception e) {
                     Thread.sleep(3000);
                     e.printStackTrace();
-                    log.info("获取远程服务失败: {} 尝试次数: {}", addr.toString(), count);
+                    log.info("[REMOTE GATHER FAIL] Get remote service {} fail. Retry times: {}", addr.toString(), count);
                 }
             }
         }

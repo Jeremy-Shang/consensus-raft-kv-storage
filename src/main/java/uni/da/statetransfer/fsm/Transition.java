@@ -4,7 +4,7 @@ package uni.da.statetransfer.fsm;
 /**
  * Hook for Transition. Post state is decided by Transition hook. Post state
  * must be one of the valid post states registered in StateMachine.
- * 状态转换的转换器
+ *
  *
  * @author
  */

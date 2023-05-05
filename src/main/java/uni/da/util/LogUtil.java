@@ -19,16 +19,13 @@ public class LogUtil {
     }
 
     public static void printTable(Map<Integer, List<LogEntry>> records) {
-        // 获取所有记录的logIndex集合
         Set<Integer> logIndexSet = records.values().stream()
                 .flatMap(List::stream)
                 .map(LogEntry::getLogIndex)
                 .collect(Collectors.toSet());
 
-        // 获取所有记录的id集合
         Set<Integer> idSet = records.keySet();
 
-        // 计算每列的最大宽度
         Map<Integer, Integer> maxWidths = new HashMap<>();
         for (int logIndex : logIndexSet) {
             int maxWidth = records.values().stream()
@@ -40,7 +37,6 @@ public class LogUtil {
             maxWidths.put(logIndex, Math.max(maxWidth, String.valueOf(logIndex).length() + 2));
         }
 
-        // 输出表格头
         String header = "|     |" + logIndexSet.stream()
                 .map(logIndex -> String.format(" %-" + maxWidths.get(logIndex) + "d|", logIndex))
                 .collect(Collectors.joining());
@@ -51,7 +47,6 @@ public class LogUtil {
                 .collect(Collectors.joining());
         log.info(line);
 
-        // 输出表格内容
         for (int id : idSet) {
             StringBuilder rowBuilder = new StringBuilder();
             rowBuilder.append(String.format("| id%-2d |", id));

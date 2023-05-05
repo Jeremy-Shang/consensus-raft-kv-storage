@@ -27,8 +27,9 @@ public class RaftClientImpl implements RaftClient {
 
     Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
 
-    CountDownLatch countDownLatch;
+    CountDownLatch latch;
 
+    final String remoteServiceName = "RaftRpcService";
 
     public RaftClientImpl() throws InterruptedException, RemoteException {
         String ip = "127.0.0.1";
@@ -41,7 +42,7 @@ public class RaftClientImpl implements RaftClient {
 
         remoteServiceMap.get(1).sayHi();
 
-        countDownLatch.await();
+        latch.await();
     }
 
 
@@ -119,34 +120,32 @@ public class RaftClientImpl implements RaftClient {
 
 
     public void registry () throws InterruptedException {
-        countDownLatch = new CountDownLatch(clusterAddr.size());
+        latch = new CountDownLatch(clusterAddr.size());
 
         for(Integer id: clusterAddr.keySet()) {
             Addr addr = clusterAddr.get(id);
 
             for(int count=1; ; count++){
                 try {
-                    // 获取远程节点提供服务接口
 
                     String host = addr.getIp();
                     int port = addr.getPort();
-                    String name = "RaftRpcService";
+
 
                     Registry registry = LocateRegistry.getRegistry(host, port);
-                    RaftRpcService remoteObject = (RaftRpcService) registry.lookup(name);
+                    RaftRpcService remoteObject = (RaftRpcService) registry.lookup(remoteServiceName);
 
-                    // 保存在 id: service 中
                     remoteServiceMap.put(id, remoteObject);
 
-                    countDownLatch.countDown();
+                    latch.countDown();
 
-                    log.info("获取远程服务成功: {}", addr.toString());
+                    log.info("[REMOTE GATHER SUCCESS] Get remote service {}. ", addr.toString());
 
                     break;
                 } catch (Exception e) {
                     Thread.sleep(3000);
                     e.printStackTrace();
-                    log.info("获取远程服务失败: {} 尝试次数: {}", addr.toString(), count);
+                    log.info("[REMOTE GATHER FAIL] Get remote service {} fail. Retry times: {}", addr.toString(), count);
                 }
             }
         }

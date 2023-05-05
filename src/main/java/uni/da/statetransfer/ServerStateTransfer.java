@@ -49,7 +49,7 @@ public class ServerStateTransfer implements Runnable {
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
         while (!Thread.currentThread().isInterrupted()) {
-            log.info("[STATE MACHINE FLOW] 当前状态: {}, 当前任务: {}, 当前任期: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
+            log.info("[STATE MACHINE FLOW] current state: {}, curr task: {}, curr term: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
 
             Future<EventType> future = consensusState.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
@@ -77,58 +77,50 @@ public class ServerStateTransfer implements Runnable {
     }
 
 
-    /*
-        状态机状态注册
-     */
+
     private void stateTransferRegistry() {
 
         StateMachineFactory<Context, RaftState, EventType, Event> stateMachineFactory = new StateMachineFactory<>();
 
-        // 心跳监听 -> 成功 = 心跳监听
         stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.LISTENING_HEARTBEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.LISTENING_HEARTBEAT;
         });
-        // 心跳监听 -> 失败 = 选举
+
         stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.FAIL, (o, e ) -> {
             return RaftState.ELECTION;
         });
-        // 心跳监听 -> 超时 = 选举
+
         stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.TIME_OUT, (o, e ) -> {
             return RaftState.ELECTION;
         });
 
 
-
-        // 选举 -> 成功 = 心跳
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.HEAR_BEAT;
         });
-        // 选举 -> 失败 = 心跳监听
+
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.LISTENING_HEARTBEAT, EventType.FAIL, (o, e ) -> {
             return RaftState.LISTENING_HEARTBEAT;
         });
-        // 选举 -> 超时 = 选举
+
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.ELECTION, EventType.TIME_OUT, (o, e ) -> {
             return RaftState.ELECTION;
         });
 
 
-
-        // 心跳 -> 成功 = 心跳
         stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
             return RaftState.HEAR_BEAT;
         });
-        // 心跳 -> 失败 = 继续心跳
+
         stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.FAIL, (o, e ) -> {
             return RaftState.HEAR_BEAT;
         });
-        // 心跳 -> 超时 = 继续心跳
+
         stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.TIME_OUT, (o, e ) -> {
             return RaftState.HEAR_BEAT;
         });
 
 
-        // 加入初始状态
         stateMachine = stateMachineFactory.make(new Context(), this.raftState);
     }
 
