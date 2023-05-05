@@ -91,10 +91,15 @@ public class BroadcastTask extends AbstractRaftTask {
                              * 2. If AppendEntries fails because of log inconsistency:
                              *      decrement nextIndex and retry (§5.3)
                              *
-                             * TODO: check if update correct
+                             * TODO: Check if update correct
+                             * TODO: If RPC response contains term T > currentTerm:
+                             *          set currentTerm = T, convert to follower
+                             * TODO: CommitIndex and matchIndex ?
+                             * TODO: Using AppendEntry RPC should contain log[]
                              */
                             if (response.isSuccess()) {
                                 consensusState.getMatchIndex().put(sid, nextLogIndex);
+
                                 consensusState.getNextIndex().put(sid, nextLogIndex + 1);
 
                                 rel.incrementAndGet();
@@ -123,6 +128,7 @@ public class BroadcastTask extends AbstractRaftTask {
         latch.await();
 
         int[] matches = consensusState.getMatchIndex().values().stream().mapToInt(e -> e).toArray();
+
 
         // Condition 1: N > commitIndex and log[N].term == currentTerm
         int[] N = IntStream.range(0, Arrays.stream(matches).max().getAsInt())

@@ -45,13 +45,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     @Override
     public RequestVoteResponse requestVote(RequestVoteRequest request) {
 
-        resetTimer();
-        termCheck(request.getTerm());
 
-        RequestVoteResponse reject = RequestVoteResponse.builder()
-                .term(consensusState.getCurrTerm().get())
-                .voteGranted(false)
-                .build();
+        termCheck(request.getTerm());
 
         if (request.getTerm() < consensusState.getCurrTerm().get()) {
             log.info("[VOTE REJECT (1)] to node{}; currTerm {}, candidate term {}. ", request.getCandidateId(), consensusState.getCurrTerm(), request.getTerm());
@@ -62,8 +57,10 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         }
 
         if ((consensusState.votedFor == null || consensusState.votedFor == request.getCandidateId())
-        &&(request.getLastLogTerm() > consensusState.getLogModule().getLastLogTerm() || (request.getLastLogTerm() == consensusState.getCurrTerm().get() && request.getLastLogIndex() > consensusState.getLogModule().getLastLogIndex()))) {
+        && (request.getLastLogTerm() > consensusState.getLogModule().getLastLogTerm() ||
+                (request.getLastLogTerm() == consensusState.getCurrTerm().get() && request.getLastLogIndex() >= consensusState.getLogModule().getLastLogIndex()))) {
             log.info("[VOTE GRANTED to node{}. ", request.getCandidateId());
+            resetTimer();
             return RequestVoteResponse.builder()
                     .term(consensusState.getCurrTerm().get())
                     .voteGranted(true)
@@ -100,9 +97,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
          * 3.character change?
          * 4.set current leader's id?
          */
-        resetTimer();
-        termCheck(request.getTerm());
 
+        termCheck(request.getTerm());
 
         if (request.getTerm() < consensusState.getCurrTerm().get()) {
             log.info("[REJECT APPEND ENTRY (1)] from node{}, currTerm {}, senderTerm {}", consensusState.getCurrTerm().get(), request.getTerm());
@@ -112,8 +108,11 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                     .build();
         }
 
+        // leader's rpc is not outdated. reset timer.
+        resetTimer();
+
         if (consensusState.getLogModule()
-                .getLogEntry(request.getPrevLogIndex(), request.getPrevLogIndex()) == null) {
+                .getLogEntry(request.getPrevLogIndex(), request.getPreLogTerm()) == null) {
             log.info("[REJECT APPEND ENTRY (2)] from node{}. ", request.getLeaderId());
             return AppendEntryResponse.builder()
                     .term(consensusState.getCurrTerm().get())
@@ -235,9 +234,13 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
      */
     private void termCheck(int term) {
         if (term > consensusState.getCurrTerm().get()) {
+
             consensusState.getCurrTerm().set(term);
 
             consensusState.setCharacter(Character.Follower);
+
+            // TODO: need reset voteFor for new term?
+            consensusState.votedFor = null;
         }
     }
 

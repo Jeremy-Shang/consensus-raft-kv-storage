@@ -75,7 +75,7 @@ public class RaftClusterApp {
         clusterAddr.put(1, new Addr(ip, 6666));
         clusterAddr.put(2, new Addr(ip, 6667));
         clusterAddr.put(3, new Addr(ip, 6668));
-        clusterAddr.put(4, new Addr(ip, 6669));
+//        clusterAddr.put(4, new Addr(ip, 6669));
 //        clusterAddr.put(5, new Addr(ip, 6670));
 
 

@@ -2,9 +2,7 @@ package uni.da.node;
 
 
 import lombok.*;
-import redis.clients.jedis.Jedis;
 import uni.da.common.Addr;
-import uni.da.common.RedisDb;
 import uni.da.common.Timer;
 import uni.da.entity.Log.LogBody;
 import uni.da.node.impl.LogModuleImpl;
@@ -150,11 +148,21 @@ public class ConsensusState implements Serializable {
         if (this.commitIndex.get() > this.lastApplied.get()) {
             this.lastApplied.incrementAndGet();
 
+            LogBody logBody = this.logModule.getEntryByIndex(this.lastApplied.get()).getBody();
+
+            this.stateMachineModule.commit(logBody);
         }
-
-        LogBody logBody = this.logModule.getEntryByIndex(newCommitIndex).getBody();
-
-        this.stateMachineModule.commit(logBody);
     }
 
+    public void setCharacter(Character ch) {
+        this.character = ch;
+        if (this.character == Character.Leader) {
+            this.clusterAddr.entrySet().forEach(
+                    entry ->  {
+                        this.matchIndex.put(entry.getKey(), 0);
+                        this.nextIndex.put(entry.getKey(), consensusState.getLogModule().getLastLogIndex());
+                    }
+            );
+        }
+    }
 }

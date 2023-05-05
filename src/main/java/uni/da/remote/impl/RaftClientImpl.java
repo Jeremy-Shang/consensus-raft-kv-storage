@@ -23,13 +23,12 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class RaftClientImpl implements RaftClient {
 
-    // TODO 节点地址暂时写死
     Map<Integer, Addr> clusterAddr = new HashMap<>();
 
-    // 客户端获取远程服务 TODO 理论上客户端只能获得一个服务
     Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
 
     CountDownLatch countDownLatch;
+
 
     public RaftClientImpl() throws InterruptedException, RemoteException {
         String ip = "127.0.0.1";
@@ -47,8 +46,8 @@ public class RaftClientImpl implements RaftClient {
 
 
     /**
-     * put key val
-     * get key
+     * Client prompt
+     *
      * @throws ExecutionException
      * @throws InterruptedException
      * @throws RemoteException
@@ -82,18 +81,24 @@ public class RaftClientImpl implements RaftClient {
     }
 
 
-
-
-
+    /**
+     * Put operation
+     * @param request
+     * @return
+     * @throws ExecutionException
+     * @throws InterruptedException
+     * @throws RemoteException
+     */
     @Override
     public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException {
-        // 1. TODO template 暂时只往默认leader 发送信息
+
+        // TODO: client can randomly pick one node
         RaftRpcService service = remoteServiceMap.get(1);
 
-        log.info(request.toString() + " client 准备发消息");
 
         service.sayHi();
-        // 2. Client 发送消息
+
+
         ClientResponse<Map<Integer, List<LogEntry>>> response = service.handleClient(request);
 
         Map<Integer, List<LogEntry>> data = response.getData();

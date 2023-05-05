@@ -100,6 +100,7 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
         // If votes received from the majority of servers: become leader
         consensusState.setCharacter(Character.Leader);
 
+
         sign = "task finish";
         latch.countDown();
 

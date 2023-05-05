@@ -31,7 +31,7 @@ public class LogModuleImpl implements LogModule {
         } else {
             // first Index is 1. Index 0 contains fake data
             logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-                    new LogEntry(1, 0, new LogBody(-1, "fake"))
+                    new LogEntry(0, 0, new LogBody(-1, "fake"))
             });
         }
     }
