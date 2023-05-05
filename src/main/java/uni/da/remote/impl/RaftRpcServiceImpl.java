@@ -58,7 +58,9 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         if ((consensusState.votedFor == null || consensusState.votedFor == request.getCandidateId())
         && (request.getLastLogTerm() > consensusState.getLogModule().getLastLogTerm() ||
-                (request.getLastLogTerm() == consensusState.getCurrTerm().get() && request.getLastLogIndex() >= consensusState.getLogModule().getLastLogIndex()))) {
+                (request.getLastLogTerm() == consensusState.getLogModule().getLastLogTerm() && request.getLastLogIndex() >= consensusState.getLogModule().getLastLogIndex()))) {
+
+
             log.info("[VOTE GRANTED to node{}. ", request.getCandidateId());
             resetTimer();
             return RequestVoteResponse.builder()
