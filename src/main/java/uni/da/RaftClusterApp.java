@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import uni.da.common.Addr;
 import uni.da.node.ConsensusState;
 import uni.da.node.Node;
-import uni.da.node.impl.NodeImpl;
+import uni.da.node.impl.NodeModuleImpl;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -83,7 +83,7 @@ public class RaftClusterApp {
         ConsensusState consensusState = new ConsensusState(id, "node"+id, new Addr(ip, port), timeout, clusterAddr);
 
 
-        Node node = NodeImpl.getInstance(consensusState);
+        Node node = NodeModuleImpl.getInstance(consensusState);
 
         node.start();
     }

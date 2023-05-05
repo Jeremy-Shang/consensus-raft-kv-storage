@@ -8,8 +8,9 @@ import uni.da.entity.Log.LogEntry;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
-import uni.da.statemachine.fsm.component.EventType;
+import uni.da.statetransfer.fsm.component.EventType;
 import uni.da.task.BroadcastTask;
+import uni.da.util.LogUtil;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -46,9 +47,6 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         resetTimer();
         termCheck(request.getTerm());
-
-
-
 
         RequestVoteResponse reject = RequestVoteResponse.builder()
                 .term(consensusState.getCurrTerm().get())
@@ -131,63 +129,74 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         consensusState.getLogModule().append(request.getLogEntry());
 
-
         if (request.getLeaderCommit() > consensusState.getCommitIndex().get()) {
             int newCommitIndex = Math.min(request.getLeaderCommit(),
                     consensusState.getLogModule().getLastLogIndex());
 
-            consensusState.setCommitIndex(newCommitIndex);
+            consensusState.setCommitAndApply(newCommitIndex);
         }
 
         return AppendEntryResponse.builder()
                 .term(consensusState.getCurrTerm().get())
                 .success(true)
                 .build();
-//        // 1. 任期号跟Leader同步
-//        consensusState.getCurrTerm().set(request.getTerm());
-//        // 2. 状态变更为Follower
-//        consensusState.setCharacter(Character.Follower);
-//        // 3. TODO 设置当前leaderID
-//        consensusState.getLeaderId().getAndSet(request.getLeaderId());
+
     }
 
+
+    /**
+     * Leaders:
+     * 1. If command received from client: append entry to local log,
+     *      respond after entry applied to state machine (§5.3)
+     *
+     *
+     * @param request
+     * @return
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     @Override
     public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException {
 
-        log.info(request.toString());
+        LogUtil.printBoxedMessage("Receive client request: " + request);
 
-        // 1. TODO get request
-        if (request.getTYPE() == 1) {
-            return null;
-        }
-
-
-        int key = request.getKey();
-        String val = request.getVal();
-
-        // 2. TODO 重定向到leader
-        if (consensusState.getCharacter() != Character.Leader) {
-            return null;
-        }
-
-        // 2. 当前leader中直接插入指令
-        LogEntry logEntry = LogEntry.builder()
+        // append to local log
+        consensusState.getLogModule().append(LogEntry.builder()
                 .term(consensusState.getCurrTerm().get())
                 .logIndex(consensusState.getLogModule().getLastLogIndex() + 1)
-                .body(new LogBody(key ,val))
-                .build();
+                .body(new LogBody(request.getKey() ,request.getVal()))
+                .build());
 
-        consensusState.getLogModule().append(logEntry);
 
-        // 3. 发起消息广播
-        Future<EventType> future =  consensusState.getNodeExecutorService().submit(new BroadcastTask(consensusState));
+        // send to followers
+        Future<EventType> future =  consensusState.getNodeExecutorService().submit(
+                new BroadcastTask(consensusState));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         try {
             future.get();
         } catch (Exception e) {
             log.error("任务失败");
         }
-
 
         // 4. 客户端回显数据
         Map<Integer, List<LogEntry>> clientEcho = new HashMap<>();
@@ -205,11 +214,9 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             clientEcho.put(k, new ArrayList<>(logEntries));
         }
 
-
         // 4. TODO 客户端需要回显
         return ClientResponse.success(clientEcho);
     }
-
 
     /**
      * 客户端回显，获取所有节点log状态
@@ -219,6 +226,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     public CopyOnWriteArrayList<LogEntry> gatherClusterLogEntries() {
         return consensusState.getLogModule().getLogEntries();
     }
+
 
 
     /**
@@ -234,17 +242,21 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     }
 
 
+
+
+
+
+
     /**
      * Reset timer for listening heartbeat task
      */
     private void resetTimer() {
         try {
-            this.consensusState.getPipe().getOutputStream().write(1);
+            this.consensusState.getTimer().getOutputStream().write(1);
         } catch (IOException e) {
             log.error("Maintain heartBeat fail: node{}", consensusState.getId());
         }
     }
-
 
 
     @Override

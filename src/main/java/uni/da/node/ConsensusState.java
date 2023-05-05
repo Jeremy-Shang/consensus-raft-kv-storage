@@ -10,49 +10,44 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/*
-    节点信息
+/**
+ * Consensus state contains shared information of each node
+ * Object is singleton and can be shared by thread
+ * inside node or other nodes
  */
 @Data
 @ToString
 public class ConsensusState implements Serializable {
-
-    // 确保节点参数对象唯一
     private static ConsensusState consensusState;
 
-    /** 节点固定配置参数 */
+    /** Node common information */
     private final int id;
 
-    // 名字，用来debug
     private final String name;
 
-    // 端口 + 地址
     private final Addr addr;
 
-    // 超时时长，毫秒
+    // TODO random timeout
     private final int timeout;
 
-    // 集群中其他所有的节点的配置
+    // Cluster configuration. All nodes share
     private Map<Integer, Addr> clusterAddr;
 
-    // 心跳监听的阻塞式管道
-    private Pipe pipe;
+    private final Integer clusterSize;
+
+    // Using pipe's blocking read as timer
+    private Pipe timer;
     
-    // 远程服务
+    // Contain rpc communication method to each node
     private Map<Integer, RaftRpcService> remoteServiceMap;
 
-    // 节点公共线程池
+    // All threads are running in a node thread pool
     private ExecutorService nodeExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
-
-
-
-
 
 
     /** Persistent state on all servers */
@@ -65,6 +60,7 @@ public class ConsensusState implements Serializable {
 
     // log entries; each entry contains command for state machine, and term when entry was received by leader (first index is 1)
     private volatile LogModule logModule;
+
 
 
     /** Volatile state on all servers */
@@ -87,14 +83,12 @@ public class ConsensusState implements Serializable {
      */
     private AtomicInteger lastApplied;
 
-
     /**
      * for each server, index of the next log entry
      * to send to that server (initialized to leader
      * last log index + 1)
      */
     private Map<Integer, Integer> nextIndex = new HashMap<>();
-
 
     /**
      * for each server, index of the highest log entry
@@ -103,11 +97,8 @@ public class ConsensusState implements Serializable {
      */
     private Map<Integer, Integer> matchIndex = new HashMap<>();
 
-
-
     // 集群leader id
     public AtomicInteger leaderId = new AtomicInteger(-1);
-
 
     // 节点角色
     private volatile Character character = Character.Follower;
@@ -115,25 +106,23 @@ public class ConsensusState implements Serializable {
     // 每个任期投票历史，并发稳定读写不可抢占
     private volatile ConcurrentHashMap<Integer, Integer> voteHistory = new ConcurrentHashMap<>();
 
-
-
     public ConsensusState(int id, String name, Addr addr, int timeout, Map<Integer, Addr> clusterAddr) throws IOException {
         this.id = id;
         this.name = name;
         this.addr = addr;
         this.timeout = timeout;
-        this.pipe = new Pipe("hearBeat");
+        this.timer = new Pipe("hearBeat");
         this.clusterAddr = clusterAddr;
+        this.clusterSize = clusterAddr.size();
         restore();
     }
-
 
     /**
      * If commitIndex > lastApplied: increment lastApplied, apply
      * log[lastApplied] to state machine (§5.3)
      * @param newCommitIndex
      */
-    public void setCommitIndex(int newCommitIndex) {
+    public void setCommitAndApply(int newCommitIndex) {
 
         this.commitIndex.set(newCommitIndex);
 
@@ -145,7 +134,6 @@ public class ConsensusState implements Serializable {
         }
 
     }
-
 
     /**
      * TODO Restore from persistence state

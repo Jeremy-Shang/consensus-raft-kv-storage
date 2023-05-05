@@ -1,4 +1,4 @@
-package uni.da.statemachine.fsm.component;
+package uni.da.statetransfer.fsm.component;
 
 
 import lombok.Builder;

@@ -7,7 +7,6 @@ import uni.da.entity.ClientResponse;
 import uni.da.entity.Log.LogEntry;
 import uni.da.remote.RaftClient;
 import uni.da.remote.RaftRpcService;
-import uni.da.statemachine.fsm.component.Event;
 import uni.da.util.LogUtil;
 
 import java.rmi.RemoteException;

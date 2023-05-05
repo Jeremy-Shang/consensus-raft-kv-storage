@@ -6,10 +6,11 @@ import uni.da.entity.RequestVoteResponse;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
-import uni.da.statemachine.fsm.component.EventType;
+import uni.da.statetransfer.fsm.component.EventType;
 import uni.da.task.AbstractRaftTask;
 import uni.da.util.LogUtil;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -33,20 +34,44 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
     }
 
 
+    /**
+     * On conversion to candidate, start election:
+     *      • Increment currentTerm
+     *      • Vote for self
+     *      • Reset election timer
+     *      • Send RequestVote RPCs to all other servers
+     *      • If votes received from the majority of servers: become leader
+     *      • If AppendEntries RPC received from new leader: convert to
+     *          follower
+     *      • If election timeout elapses: start new election
+     * @return
+     * @throws Exception
+     */
     @Override
     public EventType call() throws Exception {
-        // 节点增加自己任期，并进入候选人状态
-        consensusState.getCurrTerm().incrementAndGet();
-        consensusState.setCharacter(Character.Candidate);
+
         LogUtil.printBoxedMessage(consensusState.getName() + " start election !");
-        Map<Integer, RaftRpcService> remoteServiceMap = this.consensusState.getRemoteServiceMap();
 
-        // 过半数票
-        CountDownLatch votes = new CountDownLatch((int) Math.ceil(consensusState.getClusterAddr().size() / 2) + 1);
+        /** Convert to candidate */
+        consensusState.setCharacter(Character.Candidate);
 
-        // 请求所有人投票，包括自己
-        for(Integer id: remoteServiceMap.keySet()) {
+        /** Increment currentTerm */
+        consensusState.getCurrTerm().incrementAndGet();
 
+        /** Vote for self */
+        consensusState.setVotedFor(consensusState.getId());
+
+        /** TODO: Reset election timer ? */
+
+
+        /** (Concurrently) Send RequestVote RPCs to all other servers */
+
+        Map<Integer, RaftRpcService> otherNodesService = new HashMap<>(consensusState.getRemoteServiceMap());
+        otherNodesService.remove(consensusState.getId());
+        CountDownLatch votesCount = new CountDownLatch((int) Math.ceil(consensusState.getClusterSize() / 2) + 1);
+
+
+        for(Integer id: otherNodesService.keySet()) {
             RequestVoteRequest requestVoteRequest = RequestVoteRequest.builder()
                     .term(consensusState.getCurrTerm().get())
                     .candidateId(consensusState.getId())
@@ -54,29 +79,29 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
                     .lastLogTerm(consensusState.getLogModule().getLastLogTerm())
                     .build();
 
-            // 并发执行投票任务
             consensusState.getNodeExecutorService().execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        RequestVoteResponse response = remoteServiceMap.get(id).requestVote(requestVoteRequest);
+                        RequestVoteResponse response = otherNodesService.get(id).requestVote(requestVoteRequest);
                         if (response.isVoteGranted()) {
-                            log.info(" ------> Get vote from: " + "Node " + id);
-                            votes.countDown();
+                            log.info("[RECEIVE VOTE] node{} receive vote from node{}", consensusState.getId(), id);
+                            votesCount.countDown();
                         }
                     } catch (Exception e) {
-                        log.error("发送请求投票消息失败：{} -> {} ", consensusState.getId(), id);
+                        log.error("[SEND REQUEST VOTE FAIL]：{} -> {} ", consensusState.getId(), id);
                     }
                 }
             });
         }
 
+        votesCount.await();
 
-        votes.await();
         LogUtil.printBoxedMessage(consensusState.getName() + " become leader !");
+
+        // If votes received from the majority of servers: become leader
         consensusState.setCharacter(Character.Leader);
 
-        // 主线程解除阻塞
         sign = "task finish";
         latch.countDown();
 

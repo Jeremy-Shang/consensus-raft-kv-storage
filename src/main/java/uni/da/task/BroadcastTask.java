@@ -1,108 +1,159 @@
 package uni.da.task;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.rmi.RemoteException;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import lombok.extern.slf4j.Slf4j;
 import uni.da.entity.AppendEntryResponse;
 import uni.da.entity.Log.LogEntry;
-import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.entity.AppendEntryRequest;
 import uni.da.remote.RaftRpcService;
-import uni.da.statemachine.fsm.component.EventType;
+import uni.da.statetransfer.fsm.component.EventType;
+import uni.da.util.LogUtil;
 
 @Slf4j
 public class BroadcastTask extends AbstractRaftTask {
 
     private LogEntry logEntry = null;
 
+
     public BroadcastTask(ConsensusState consensusState) {
         super(consensusState);
     }
 
-
+    /**
+     * HeartBeat broadcast and AppendEntry broadcast
+     * @return
+     * @throws Exception
+     */
     @Override
     public EventType call() throws Exception {
-        // 只有leader才能广播心跳
-        if (consensusState.getCharacter() != Character.Leader) {
-            return EventType.FAIL;
-        }
 
-//        LogUtil.printBoxedMessage(consensusState.getName() + " broadcast msg !");
+        LogUtil.printBoxedMessage(consensusState.getCharacter() + " " + consensusState.getName() + " broadcast msg !");
 
         CopyOnWriteArrayList<AppendEntryResponse> responses = new CopyOnWriteArrayList<>();
 
-        Map<Integer, RaftRpcService> remoteServiceMap = this.consensusState.getRemoteServiceMap();
+        AtomicInteger rel = new AtomicInteger(1);
+        CountDownLatch latch = new CountDownLatch(consensusState.getClusterSize());
 
-        // 过滤广播目标，不给自己广播心跳
-        Set<Integer> keysExcludeSelf = remoteServiceMap.keySet().stream()
-                .filter(e -> e != this.consensusState.getId())
-                .collect(Collectors.toSet());
 
-        // 睡一会，避免疯狂心跳
+        Map<Integer, RaftRpcService> otherNodesService = new HashMap<>(this.consensusState.getRemoteServiceMap());
+        otherNodesService.remove(consensusState.getId());
+
+        /**
+         * HeartBeat interval = election_timeout / 10;
+         * TODO: distinguish broadcast type?
+         */
         Thread.sleep(consensusState.getTimeout() / 10);
 
-        // 并发广播心跳
-        for(Integer sid: keysExcludeSelf) {
+
+        // broadcast message
+        for(Integer sid: otherNodesService.keySet()) {
             consensusState.getNodeExecutorService().execute(new Runnable() {
                 @Override
                 public void run() {
-
-                    // 当前节点 "期待" 的下一条日志
+                    AppendEntryRequest request = null;
+                    /**
+                     * If last log index ≥ nextIndex for a follower: send
+                     * AppendEntries RPC with log entries starting at nextIndex
+                     */
                     int nextLogIndex = consensusState.getNextIndex().get(sid);
+                    int prevLogIndex = consensusState.getLogModule().getPrevLogIndex();
+                    int preLogTerm = consensusState.getLogModule().getPrevLogTerm();
 
-                    // 可能为空 (心跳)
-                    LogEntry logEntry = consensusState.getLogModule().getEntryByIndex(nextLogIndex);
+                    if (consensusState.getLogModule().getLastLogIndex() > nextLogIndex) {
 
-                    // 当前节点到目前为止已经ack的日志索引和任期
-                    int prevLogIndex = consensusState.getMatchIndex().get(sid);
-                    int preLogTerm = consensusState.getLogModule().getEntryByIndex(prevLogIndex).getTerm();
+                        LogEntry logEntry = consensusState.getLogModule().getEntryByIndex(nextLogIndex);
+                        request = AppendEntryRequest.builder()
+                                .term(consensusState.getCurrTerm().get())
+                                .leaderId(consensusState.getId())
+                                .prevLogIndex(prevLogIndex)
+                                .preLogTerm(preLogTerm)
+                                .logEntry(logEntry)
+                                .leaderCommit(consensusState.getCommitIndex().get())
+                                .build();
 
-                    // 构造广播消息
-                    AppendEntryRequest request = AppendEntryRequest.builder()
-                            .term(consensusState.getCurrTerm().get())           // 当前任期
-                            .leaderId(consensusState.getId())               // leader id
-                            .prevLogIndex(prevLogIndex)
-                            .preLogTerm(preLogTerm)
-                            .logEntry(logEntry)                             // 可能为null, 如果为null，对面会回应这是心跳
-                            .leaderCommit(consensusState.getLogModule().getMaxCommit())
-                            .build();
+                        try {
+                            AppendEntryResponse response = otherNodesService
+                                    .get(sid)
+                                    .appendEntry(request);
+                            /**
+                             * 1. If successful: update nextIndex and matchIndex for
+                             *      follower (§5.3)
+                             * 2. If AppendEntries fails because of log inconsistency:
+                             *      decrement nextIndex and retry (§5.3)
+                             *
+                             * TODO: check if update correct
+                             */
+                            if (response.isSuccess()) {
+                                consensusState.getMatchIndex().put(sid, nextLogIndex);
+                                consensusState.getNextIndex().put(sid, nextLogIndex + 1);
 
-                    try {
-                        AppendEntryResponse response = remoteServiceMap.get(sid).appendEntry(request);
-
-                        if (response.isSuccess() && !response.isHeartBeat()) {
-                            // 更新该节点目前的match Index
-                            consensusState.getMatchIndex().put(sid, response.getMatchIndex());
-                            // 更新该节点期待的下一个 Index
-                            consensusState.getNextIndex().put(sid, response.getMatchIndex() + 1);
+                                rel.incrementAndGet();
+                            } else {
+                                consensusState.getNextIndex().put(sid, consensusState.getNextIndex().get(sid) - 1);
+                            }
+                        } catch (RemoteException e) {
+                            log.error("[SEND MESSAGE FAIL] from {} to {}. ", consensusState.getId(), sid);
+                        } finally {
+                            latch.countDown();
                         }
 
-                        responses.add(response);
-
-                    } catch (Exception e) {
-                        log.error("发送心跳消息失败：{} -> {} ", consensusState.getId(), sid);
                     }
                 }
             });
         }
 
-        // 4. 如果过半被复制，则commit. 统计过半matchindex
-        List<Integer> commitIndexes = responses.stream()
-                .filter(e -> e.isSuccess())
-                .collect(Collectors.groupingBy(AppendEntryResponse::getMatchIndex, Collectors.counting()))
-                .entrySet().stream()
-                .filter(e -> e.getValue() > consensusState.getClusterAddr().size() / 2)
+        /**
+         * TODO: If there exists an N such that N > commitIndex, a majority
+         *          of matchIndex[i] ≥ N, and log[N].term == currentTerm:
+         *          set commitIndex = N (§5.3, §5.4).
+         *
+         * Current: if more than half nodes replicated log, commit it and set commit index
+         */
+
+        latch.await();
+
+        int[] matches = consensusState.getMatchIndex().values().stream().mapToInt(e -> e).toArray();
+
+        // Condition 1: N > commitIndex and log[N].term == currentTerm
+        int[] N = IntStream.range(0, Arrays.stream(matches).max().getAsInt())
+                .filter(n -> consensusState.getLogModule().getEntryByIndex(n).getTerm() == consensusState.getCurrTerm().get() && n > consensusState.getCommitIndex().get())
+                .sorted()
+                .toArray();
+
+        // Condition 2: a majority of matchIndex[i] ≥ N
+        Map<Integer, Integer> map = Arrays.stream(N)
+                .boxed()
+                .collect(Collectors.toMap(Function.identity(), n -> 0));
+
+        Arrays.stream(N).mapToObj(e -> (Integer) e)
+                .flatMap(n -> Arrays.stream(matches)
+                                .filter(m -> m > n)
+                                .mapToObj(m -> Map.entry(m, 1)))
+                .collect(Collectors.groupingBy(Map.Entry::getKey))
+                .forEach((k, v) -> map.put(k, v.stream().mapToInt(Map.Entry::getValue).sum()));
+
+        N = map.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue() > (consensusState.getClusterSize() / 2) + 1)
                 .map(e -> e.getKey())
-                .collect(Collectors.toList());
+                .mapToInt(e -> e)
+                .sorted()
+                .toArray();
 
-        // 5. leader进行commit
-        commitIndexes.forEach(i -> consensusState.getLogModule().apply(i));
+        int newCommitIndex = N[N.length - 1];
 
+        log.info("[SATISFIED N] {} commitIndex {} ", Arrays.toString(N), newCommitIndex);
+
+        consensusState.setCommitAndApply(newCommitIndex);
 
         return EventType.SUCCESS;
     }

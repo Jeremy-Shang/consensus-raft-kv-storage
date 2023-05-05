@@ -1,17 +1,17 @@
-package uni.da.statemachine;
+package uni.da.statetransfer;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import uni.da.node.ConsensusState;
-import uni.da.statemachine.fsm.impl.StateMachineFactory;
-import uni.da.statemachine.fsm.component.Context;
-import uni.da.statemachine.fsm.component.Event;
-import uni.da.statemachine.fsm.component.EventType;
-import uni.da.statemachine.fsm.StateMachine;
+import uni.da.statetransfer.fsm.impl.StateMachineFactory;
+import uni.da.statetransfer.fsm.component.Context;
+import uni.da.statetransfer.fsm.component.Event;
+import uni.da.statetransfer.fsm.component.EventType;
+import uni.da.statetransfer.fsm.StateMachine;
 import uni.da.task.election.ElectionTask;
 import uni.da.task.BroadcastTask;
 import uni.da.task.ListeningTask;
-import uni.da.statemachine.fsm.component.RaftState;
+import uni.da.statetransfer.fsm.component.RaftState;
 
 import java.io.IOException;
 import java.util.Map;
@@ -19,7 +19,7 @@ import java.util.concurrent.*;
 
 @Slf4j
 @Data
-public class RaftStateMachine implements Runnable {
+public class ServerStateTransfer implements Runnable {
 
     private Map<RaftState, Callable<EventType>> taskMap = new ConcurrentHashMap<>();
 
@@ -30,7 +30,7 @@ public class RaftStateMachine implements Runnable {
     private ConsensusState consensusState;
 
 
-    public RaftStateMachine(ConsensusState consensusState) throws IOException {
+    public ServerStateTransfer(ConsensusState consensusState) throws IOException {
 
         this.consensusState = consensusState;
 
@@ -43,33 +43,29 @@ public class RaftStateMachine implements Runnable {
         stateTransferRegistry();
     }
 
-    /*
-        模型
-        - 状态：监听、心跳、选举 -> 监听task、心跳task、选举task
-        - 事件：成功、失败
-        - 状态机：状态 + 事件 -> 新状态。新状态 -> 新task
-        - 执行新task，轮转
+
+    /**
+     *
      */
     @Override
     public void run() {
+
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
         while (!Thread.currentThread().isInterrupted()) {
-            log.info("当前状态: {}, 当前任务: {}, 当前任期: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
-            // 提交当前任务到线程池
+            log.info("[STATE MACHINE FLOW] 当前状态: {}, 当前任务: {}, 当前任期: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
+
             Future<EventType> future = consensusState.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
+
             try {
-                // 更新结果：成功/失败/超时
                 futureEventType = future.get(consensusState.getTimeout(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 log.info("======> task {} timeout at: {}ms term {}", currTask.getClass().getName(), consensusState.getTimeout(), consensusState.getCurrTerm());
-
                 futureEventType = EventType.TIME_OUT;
                 e.printStackTrace();
             } catch (InterruptedException e) {
                 log.info("======> task {} interrupted term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
-
                 futureEventType = EventType.FAIL;
                 e.printStackTrace();
             } catch (ExecutionException e) {
@@ -78,8 +74,6 @@ public class RaftStateMachine implements Runnable {
                 futureEventType = EventType.FAIL;
                 e.printStackTrace();
             } finally {
-//                log.info("======> task result: {}", futureEventType.toString());
-                // 从状态机获得下一个任务
                 this.raftState = stateMachine.doTransition(futureEventType, new Event(futureEventType));
                 currTask = taskMap.get(this.raftState);
             }
@@ -91,6 +85,7 @@ public class RaftStateMachine implements Runnable {
         状态机状态注册
      */
     private void stateTransferRegistry() {
+
         StateMachineFactory<Context, RaftState, EventType, Event> stateMachineFactory = new StateMachineFactory<>();
 
         // 心跳监听 -> 成功 = 心跳监听
@@ -105,6 +100,7 @@ public class RaftStateMachine implements Runnable {
         stateMachineFactory.addTransition(RaftState.LISTENING_HEARTBEAT, RaftState.ELECTION, EventType.TIME_OUT, (o, e ) -> {
             return RaftState.ELECTION;
         });
+
 
 
         // 选举 -> 成功 = 心跳

@@ -1,7 +1,7 @@
-package uni.da.statemachine.fsm.impl;
+package uni.da.statetransfer.fsm.impl;
 
-import uni.da.statemachine.fsm.StateMachine;
-import uni.da.statemachine.fsm.Transition;
+import uni.da.statetransfer.fsm.StateMachine;
+import uni.da.statetransfer.fsm.Transition;
 
 import java.util.HashMap;
 import java.util.Map;

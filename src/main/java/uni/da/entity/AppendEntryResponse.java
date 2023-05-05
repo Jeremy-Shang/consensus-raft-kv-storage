@@ -18,9 +18,5 @@ public class AppendEntryResponse implements Serializable {
     // true if follower contained entry matching prevLogIndex and prevLogTerm
     boolean success;
 
-    // TOOD: May useless
-    int matchIndex;
-
-    boolean isHeartBeat;
 
 }

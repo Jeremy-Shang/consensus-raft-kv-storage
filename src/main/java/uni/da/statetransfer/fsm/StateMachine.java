@@ -1,4 +1,4 @@
-package uni.da.statemachine.fsm;
+package uni.da.statetransfer.fsm;
 
 /**
  * FSM 状态机接口

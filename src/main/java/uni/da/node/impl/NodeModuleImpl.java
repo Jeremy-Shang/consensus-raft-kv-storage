@@ -4,7 +4,6 @@ import lombok.Data;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.registry.LocateRegistry;
 
@@ -15,41 +14,30 @@ import uni.da.node.Node;
 import java.rmi.registry.Registry;
 import uni.da.remote.RaftRpcService;
 import uni.da.remote.impl.RaftRpcServiceImpl;
-import uni.da.statemachine.RaftStateMachine;
+import uni.da.statetransfer.ServerStateTransfer;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.rmi.Naming;
 import java.rmi.RemoteException;
-import java.rmi.server.RemoteObject;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-/*
-    Raft 集群节点实例
-        - 每次启动节点，启动对应的线程实例
+
+/**
+ *  Raft Node Instance starter.
  */
 @Slf4j
 @Data
-public class NodeImpl implements Node {
+public class NodeModuleImpl implements Node {
 
+    private static NodeModuleImpl nodeImpl = null;
 
-    // 单例节点
-    private static NodeImpl nodeImpl = null;
-
-    // 节点配置信息
     private ConsensusState consensusState;
-
-
-    // Raft节点定义模块
 
     private LogModule logModule;
 
-
-    // 通用同步工具
     CountDownLatch countDownLatch;
+
 
 
     /**
@@ -57,30 +45,29 @@ public class NodeImpl implements Node {
      * @param consensusState
      * @throws IOException
      */
-    private NodeImpl(ConsensusState consensusState) throws IOException {
+    private NodeModuleImpl(ConsensusState consensusState) throws IOException {
 
         this.consensusState = consensusState;
 
         /** 设置日志体，恢复当前任期号码*/
+        this.consensusState.setLogModule(new LogModuleImpl(String.valueOf(consensusState.getId())));
 
-        this.consensusState.setLogModule(new LogModuleImpl(100));
 
         log.info("size" + String.valueOf(consensusState.getLogModule().getLogEntries().size()));
-//        this.consensusState.getTerm().getAndSet(this.consensusState.getLogModule().getLastLogIndex());
-
     }
 
-    public static synchronized NodeImpl getInstance(ConsensusState consensusState) throws IOException {
-        if (NodeImpl.nodeImpl == null) {
-            NodeImpl.nodeImpl = new NodeImpl(consensusState);
+    public static synchronized NodeModuleImpl getInstance(ConsensusState consensusState) throws IOException {
+        if (NodeModuleImpl.nodeImpl == null) {
+            NodeModuleImpl.nodeImpl = new NodeModuleImpl(consensusState);
         }
-
-        return NodeImpl.nodeImpl;
+        return NodeModuleImpl.nodeImpl;
     }
+
+
 
 
     /**
-     * 启动raft节点
+     *
      * @throws InterruptedException
      */
     public void start() throws InterruptedException, IOException {
@@ -98,19 +85,14 @@ public class NodeImpl implements Node {
 
 
 
-
-
         /** 启动状态机流转*/
-        Thread stateMachine = new Thread(new RaftStateMachine(consensusState));
+        Thread stateMachine = new Thread(new ServerStateTransfer(consensusState));
         stateMachine.start();
 
         /** client */
 
-
-
         // 主线程阻塞
         stateMachine.join();
-
     }
 
 
@@ -128,8 +110,6 @@ public class NodeImpl implements Node {
     public void get(Object key) {
 
     }
-
-
 
     /**
      *  远程服务注册

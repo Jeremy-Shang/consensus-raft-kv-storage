@@ -1,4 +1,4 @@
-package uni.da.statemachine.fsm.component;
+package uni.da.statetransfer.fsm.component;
 
 public enum RaftState {
     LISTENING_HEARTBEAT,
