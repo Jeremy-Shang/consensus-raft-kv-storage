@@ -49,6 +49,10 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
     @Override
     public EventType call() throws Exception {
 
+        consensusState.retryConnection();
+
+        int requiredVotes = (consensusState.getClusterSize()/2) + 1;
+
         /** Convert to candidate */
         consensusState.setCharacter(Character.Candidate);
 
@@ -57,6 +61,7 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
 
         /** Vote for self */
         consensusState.setVotedFor(consensusState.getId());
+        requiredVotes -= 1;
 
         log.info("[{}] {} {} start election ! curr term {}", LogType.START_ELECTION, consensusState.getCharacter(), consensusState.getName(), consensusState.getCurrTerm());
 
@@ -66,12 +71,15 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
 
         /** (Concurrently) Send RequestVote RPCs to all other servers */
 
+
         Map<Integer, RaftRpcService> otherNodesService = new HashMap<>(consensusState.getRemoteServiceMap());
+
         otherNodesService.remove(consensusState.getId());
-        CountDownLatch votesCount = new CountDownLatch((int) Math.ceil(consensusState.getClusterSize() / 2) + 1);
+
+        CountDownLatch votesCount = new CountDownLatch(requiredVotes);
 
 
-        for(Integer id: otherNodesService.keySet()) {
+        for(Integer sid: otherNodesService.keySet()) {
             RequestVoteRequest requestVoteRequest = RequestVoteRequest.builder()
                     .term(consensusState.getCurrTerm().get())
                     .candidateId(consensusState.getId())
@@ -83,14 +91,14 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
                 @Override
                 public void run() {
                     try {
-                        RequestVoteResponse response = otherNodesService.get(id).requestVote(requestVoteRequest);
+                        RequestVoteResponse response = otherNodesService.get(sid).requestVote(requestVoteRequest);
                         if (response.isVoteGranted()) {
-                            log.debug("[RECEIVE VOTE] node{} receive vote from node{}", consensusState.getId(), id);
+                            log.info("[RECEIVE VOTE] node{} receive vote from node{}", consensusState.getId(), sid);
                             votesCount.countDown();
                         }
                     } catch (Exception e) {
-                        log.error("[SEND REQUEST VOTE FAIL]：{} -> {} ", consensusState.getId(), id);
-                        e.printStackTrace();
+                        log.error("[SEND REQUEST VOTE FAIL]：{} -> {} ", consensusState.getId(), sid);
+                        consensusState.getCrashNodes().add(sid);
                     }
                 }
             });

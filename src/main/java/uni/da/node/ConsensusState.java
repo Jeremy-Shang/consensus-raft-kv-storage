@@ -2,20 +2,24 @@ package uni.da.node;
 
 
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import uni.da.common.Addr;
 import uni.da.common.Timer;
 import uni.da.entity.Log.LogBody;
 import uni.da.node.impl.LogModuleImpl;
 import uni.da.node.impl.StateMachineImpl;
 import uni.da.remote.RaftRpcService;
+import uni.da.util.LogType;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -25,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Getter
 @Setter
+@Slf4j
 public class ConsensusState implements Serializable {
     private static ConsensusState consensusState;
 
@@ -47,7 +52,7 @@ public class ConsensusState implements Serializable {
     private Timer timer;
     
     // Contain rpc communication method to each node
-    private Map<Integer, RaftRpcService> remoteServiceMap;
+    private ConcurrentHashMap<Integer, RaftRpcService> remoteServiceMap;
 
     // All threads are running in a node thread pool
     private ExecutorService nodeExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
@@ -64,9 +69,9 @@ public class ConsensusState implements Serializable {
     // log entries; each entry contains command for state machine, and term when entry was received by leader (first index is 1)
     private volatile LogModule logModule;
 
+
     // TODO: check statemachine usge
     private volatile StateMachineModule stateMachineModule;
-
 
 
     /** Volatile state on all servers */
@@ -103,6 +108,9 @@ public class ConsensusState implements Serializable {
      */
     private Map<Integer, Integer> matchIndex = new ConcurrentHashMap<>();
 
+
+
+    private CopyOnWriteArraySet<Integer> crashNodes = new CopyOnWriteArraySet<>();
 
 
 
@@ -169,5 +177,38 @@ public class ConsensusState implements Serializable {
                     }
             );
         }
+    }
+
+    /**
+     *  Retry Connection for crash nodes. If success, remove it from crash nodes list
+     */
+    public void retryConnection() {
+        List<Integer> retrySuccess = new ArrayList<>();
+
+        for(Integer sid: this.crashNodes) {
+            log.debug("[{}: retry] Retry connection on crash nodes: {}", LogType.REMOTE_RPC, this.crashNodes);
+
+            Addr addr = this.clusterAddr.get(sid);
+
+            try {
+                String host = addr.getIp();
+                int port = addr.getPort();
+
+                Registry registry = LocateRegistry.getRegistry(host, port);
+                RaftRpcService remoteService = (RaftRpcService) registry.lookup("RaftRpcService");
+
+                if (this.remoteServiceMap != null) {
+                    this.remoteServiceMap.put(sid, remoteService);
+
+                    retrySuccess.add(sid);
+                }
+            } catch (Exception e) {
+                log.debug("Retry {} connection fail", sid);
+            }
+        }
+
+        retrySuccess.forEach(sid -> {
+            this.crashNodes.remove(sid);
+        });
     }
 }

@@ -37,6 +37,8 @@ public class BroadcastTask extends AbstractRaftTask {
     @Override
     public EventType call() throws Exception {
 
+        consensusState.retryConnection();
+
         log.debug("[{}] {} {} broadcast msg ! currTerm {}. ", LogType.BROADCAST_MESSAGE, consensusState.getCharacter(), consensusState.getName(), consensusState.getCurrTerm());
 
         CopyOnWriteArrayList<AppendEntryResponse> responses = new CopyOnWriteArrayList<>();
@@ -52,10 +54,10 @@ public class BroadcastTask extends AbstractRaftTask {
 
 
         /**
-         * HeartBeat interval = election_timeout / 10;
+         * HeartBeat interval = election_timeout / 20;
          * TODO: distinguish broadcast type?
          */
-        Thread.sleep(consensusState.getTimeout() / 10);
+        Thread.sleep(consensusState.getTimeout() / 20);
 
 
         // broadcast message
@@ -128,14 +130,14 @@ public class BroadcastTask extends AbstractRaftTask {
                                 }
                             }
 
-
                         } catch (RemoteException e) {
-                            log.error("[SEND MESSAGE FAIL] from {} to {}. ", consensusState.getId(), sid);
+                            log.debug("[SEND MESSAGE FAIL] from {} to {}. ", consensusState.getId(), sid);
+                            consensusState.getCrashNodes().add(sid);
+
                         } finally {
-                            log.debug("[{}] broadcast response from {}", LogType.RECEIVE, sid);
+                            log.debug("[{}] broadcast finish: {} ->  {}", LogType.RECEIVE,consensusState.getId(), sid);
                             latch.countDown();
                         }
-
                     });
                 }
             });

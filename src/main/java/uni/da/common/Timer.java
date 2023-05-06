@@ -15,9 +15,12 @@ public class Timer {
     private static Timer timer = null;
 
     private String name;
+
     private final PipedOutputStream outputStream;
 
     private final PipedInputStream inputStream;
+
+    public final Object TimerLock = new Object();
 
     private Timer() throws IOException {
         this.outputStream = new PipedOutputStream();

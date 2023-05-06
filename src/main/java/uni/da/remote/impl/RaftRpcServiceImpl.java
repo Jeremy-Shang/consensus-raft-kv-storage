@@ -245,13 +245,17 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
      * Reset timer for listening heartbeat task
      */
     private void resetTimer(int id, String method) {
-        try {
-            log.debug("[TIMER RESET] by node{} in {}. {} {}: {}.", id, method, consensusState.getCharacter(), consensusState.getName(), consensusState.getTimeout());
-            this.consensusState.getTimer().getOutputStream().write(1);
-        } catch (IOException e) {
-            log.error("Leader maintain heartBeat fail: node{}", consensusState.getId());
-            e.printStackTrace();
+
+        synchronized (this.consensusState.getTimer().TimerLock) {
+            try {
+                log.debug("[TIMER RESET] by node{} in {}. {} {}: {}.", id, method, consensusState.getCharacter(), consensusState.getName(), consensusState.getTimeout());
+                this.consensusState.getTimer().getOutputStream().write(1);
+            } catch (IOException e) {
+                log.error("Leader maintain heartBeat fail: node{}", consensusState.getId());
+                e.printStackTrace();
+            }
         }
+
     }
 
 

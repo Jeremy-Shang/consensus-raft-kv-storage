@@ -4,6 +4,7 @@ import lombok.Data;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.rmi.AccessException;
 import java.rmi.NotBoundException;
 import java.rmi.registry.LocateRegistry;
 
@@ -17,10 +18,12 @@ import uni.da.remote.impl.RaftRpcServiceImpl;
 import uni.da.statetransfer.ServerStateTransfer;
 import uni.da.util.LogType;
 
+import javax.naming.ldap.BasicControl;
 import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 
@@ -145,7 +148,8 @@ public class NodeModuleImpl implements Node {
     private void remoteClientRegistry() throws InterruptedException, RemoteException, NotBoundException {
 
         Map<Integer, Addr> clusterAddr = consensusState.getClusterAddr();
-        Map<Integer, RaftRpcService> remoteServiceMap = new HashMap<>();
+
+        ConcurrentHashMap<Integer, RaftRpcService> remoteServiceMap = new ConcurrentHashMap<>();
 
         for(Integer id: clusterAddr.keySet()) {
             Addr addr = clusterAddr.get(id);
@@ -158,9 +162,9 @@ public class NodeModuleImpl implements Node {
 
 
                     Registry registry = LocateRegistry.getRegistry(host, port);
-                    RaftRpcService remoteObject = (RaftRpcService) registry.lookup(remoteServiceName);
+                    RaftRpcService remoteService = (RaftRpcService) registry.lookup(remoteServiceName);
 
-                    remoteServiceMap.put(id, remoteObject);
+                    remoteServiceMap.put(id, remoteService);
 
                     latch.countDown();
 
@@ -178,5 +182,6 @@ public class NodeModuleImpl implements Node {
         }
         consensusState.setRemoteServiceMap(remoteServiceMap);
     }
+
 
 }

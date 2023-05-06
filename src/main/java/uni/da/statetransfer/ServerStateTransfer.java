@@ -29,6 +29,8 @@ public class ServerStateTransfer implements Runnable {
 
     private ConsensusState consensusState;
 
+    private Long count = 0L;
+
     public ServerStateTransfer(ConsensusState consensusState) throws IOException {
 
         this.consensusState = consensusState;
@@ -49,9 +51,11 @@ public class ServerStateTransfer implements Runnable {
     public void run() {
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
-        while (!Thread.currentThread().isInterrupted()) {
-            log.debug("[{}] current state: {}, curr task: {}, curr term: {}" , LogType.STATE_TRANSFER, stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
-
+        for(int count=0; !Thread.currentThread().isInterrupted(); count ++) {
+            if (count % 50 == 0) {
+                log.info("[{}] current state: {}, curr task: {}, curr term: {}" , LogType.STATE_TRANSFER, stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
+                count = 0;
+            }
             Future<EventType> future = consensusState.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
 
