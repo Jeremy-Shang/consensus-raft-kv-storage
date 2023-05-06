@@ -1,16 +1,20 @@
 package uni.da.entity.Log;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.io.Serializable;
 
-@Data
-@Builder
+
+@Getter
+@Setter
 @AllArgsConstructor
 public class LogBody implements Serializable {
     int key;
     String value;
+
+    @Override
+    public String toString() {
+        return key + "->" + value + " ";
+    }
 }

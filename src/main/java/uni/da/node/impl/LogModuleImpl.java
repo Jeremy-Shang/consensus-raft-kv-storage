@@ -44,7 +44,7 @@ public class LogModuleImpl implements LogModule {
 //        }
 
         logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-                new LogEntry(0, 0, new LogBody(9999, "placeholder 2")),
+                new LogEntry(0, 0, new LogBody(0, "placeholder")),
         });
     }
 

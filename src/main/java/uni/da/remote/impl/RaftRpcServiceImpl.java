@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -116,7 +117,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         if (consensusState.getLogModule()
                 .getLogEntry(request.getPrevLogIndex(), request.getPreLogTerm()) == null) {
-            log.info("[REJECT APPEND ENTRY (2)] from node{}. ", request.getLeaderId());
+            log.info("[REJECT APPEND ENTRY (2)] from node{}. logEntry(index={}, term={}) do not exist.", request.getLeaderId(), request.getPrevLogIndex(), request.getPreLogTerm());
             return AppendEntryResponse.builder()
                     .term(consensusState.getCurrTerm().get())
                     .success(false)
@@ -125,11 +126,15 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         LogEntry newLogEntry = request.getLogEntry();
 
-        if (newLogEntry != null && consensusState.getLogModule().getEntryByIndex(newLogEntry.getLogIndex()).getTerm() != newLogEntry.getTerm()) {
-            // TODO  delete the existing entry and all that follow it ?
+        if (newLogEntry != null) {
+            LogEntry oldLogEntry = consensusState.getLogModule().getEntryByIndex(newLogEntry.getLogIndex());
+            if (oldLogEntry != null && newLogEntry.getTerm() == oldLogEntry.getTerm()) {
+                // TODO  delete the existing entry and all that follow it
+            }
+
         }
 
-        if (request.getLogEntry() != null && consensusState.getLogModule().contains(request.getLogEntry())) {
+        if (request.getLogEntry() != null && !consensusState.getLogModule().contains(request.getLogEntry())) {
             consensusState.getLogModule().append(request.getLogEntry());
         }
 
@@ -175,7 +180,8 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                 .build());
 
         // demo: showing cluster logs before synchronized
-        clientResponse.getData().add(consensusState.getPeersLogs());
+        clientResponse.getData().add(new ConcurrentHashMap<>(consensusState.getPeersLogs()));
+        log.info("before {} ", consensusState.getPeersLogs());
 
 
         // send to followers
@@ -188,21 +194,26 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         // gather followers' logs
         Map<Integer, List<LogEntry>> peers = new HashMap<>();
+        List<Integer> followers = new ArrayList<>(consensusState.getRemoteServiceMap().keySet());
+        followers.remove(Integer.valueOf(consensusState.getId()));
 
-        for(Integer k: consensusState.getRemoteServiceMap().keySet()) {
+
+        for(Integer k: followers) {
 
             RaftRpcService s = consensusState.getRemoteServiceMap().get(k);
 
             CopyOnWriteArrayList<LogEntry> logEntries = null;
             try {
                 logEntries = s.gatherClusterLogEntries();
+                consensusState.getPeersLogs().put(k, new ArrayList<>(logEntries));
             } catch (Exception e) {
                 log.error("fail");
             }
-            peers.put(k, new ArrayList<>(logEntries));
+
         }
 
-        clientResponse.getData().add(peers);
+        clientResponse.getData().add(new ConcurrentHashMap<>(consensusState.getPeersLogs()));
+        log.info("after {} ", consensusState.getPeersLogs());
 
 
         return clientResponse;
@@ -266,7 +277,23 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
     @Override
     public void sayHi() {
-        log.info("Hello World !!!!!!!!!!!!!!!!");
+        log.info("\u001B[3mSay Hi~\u001B[0m");
     }
 
+
+    public static void main(String[] args) {
+        ConcurrentHashMap<Integer, Integer> m = new ConcurrentHashMap<>();
+
+        m.put(1, 1);
+        m.put(2, 1);
+        m.put(3, 1);
+        m.put(4, 1);
+        m.put(5, 1);
+
+
+        List<Integer> l = new ArrayList<>(m.keySet());
+        l.remove(Integer.valueOf(1));
+
+        log.info(l.toString());
+    }
 }

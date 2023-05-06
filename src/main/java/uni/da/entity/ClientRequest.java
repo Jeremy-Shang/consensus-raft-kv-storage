@@ -1,23 +1,26 @@
 package uni.da.entity;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.ToString;
+import lombok.*;
 
 import java.io.Serializable;
 
 @ToString
 @Data
 @Builder
+@RequiredArgsConstructor
+@AllArgsConstructor
 public class ClientRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    // 0: put 1: get
-    int TYPE;
+    public enum Type{
+        PUT,
+        GET
+    }
 
-    int key;
+    @NonNull Type type;
+
+    @NonNull int key;
 
     String val;
 

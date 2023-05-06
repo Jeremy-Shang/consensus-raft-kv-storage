@@ -134,9 +134,13 @@ public class ConsensusState implements Serializable {
 
         this.logModule = new LogModuleImpl(String.valueOf(id));
 
-        this.clusterAddr.entrySet().forEach(address -> {
-            this.peersLogs.put(address.getKey(), this.getLogModule().getLogEntries());
-        });
+        for (Integer key: clusterAddr.keySet()) {
+            if (key == id) {
+                this.peersLogs.put(key, logModule.getLogEntries());
+            } else {
+                this.peersLogs.put(key, new ArrayList<>(logModule.getLogEntries()));
+            }
+        }
 
 
         this.stateMachineModule = new StateMachineImpl(String.valueOf(id));

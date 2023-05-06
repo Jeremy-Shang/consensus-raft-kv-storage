@@ -86,14 +86,18 @@ public class BroadcastTask extends AbstractRaftTask {
 
                         LogEntry logEntry = consensusState.getLogModule().getEntryByIndex(nextLogIndex);
 
-                        requests.add(AppendEntryRequest.builder()
+                        AppendEntryRequest appendEntry = AppendEntryRequest.builder()
                                 .term(consensusState.getCurrTerm().get())
                                 .leaderId(consensusState.getId())
                                 .prevLogIndex(prevLogIndex)
                                 .preLogTerm(preLogTerm)
                                 .logEntry(logEntry)
                                 .leaderCommit(consensusState.getCommitIndex().get())
-                                .build());
+                                .build();
+
+                        requests.add(appendEntry);
+
+                        log.info("[{}] append entry request {} from {} -> {}", LogType.SEND, appendEntry, consensusState.getId(), sid);
                     }
 
                     // Send message

@@ -46,8 +46,6 @@ public class RaftClientImpl implements RaftClient {
 
         registry();
 
-        remoteServiceMap.get(1).sayHi();
-
         latch.await();
     }
 
@@ -69,19 +67,14 @@ public class RaftClientImpl implements RaftClient {
             String command = input[0];
 
             if (command.equals("put")) {
-
                 int key = Integer.parseInt(input[1]);
                 String val = input[2];
 
-                put(ClientRequest.builder()
-                        .TYPE(0)
-                        .key(key)
-                        .val(val).build());
+                put(new ClientRequest(ClientRequest.Type.PUT, key, val));
             } else if (command.equals("get")) {
                 int key = scanner.nextInt();
-                get(ClientRequest.builder()
-                        .TYPE(1)
-                        .key(key).build());
+
+                get(new ClientRequest(ClientRequest.Type.GET, key));
             }
         }
     }
@@ -102,11 +95,16 @@ public class RaftClientImpl implements RaftClient {
         service.sayHi();
 
         ClientResponse<List<Map<Integer, List<LogEntry>>>> clientResponse = service.handleClient(request);
+
+        if (clientResponse == null) {
+            return ;
+        }
+
         Map<Integer, List<LogEntry>> before = clientResponse.getData().get(0);
         Map<Integer, List<LogEntry>> after = clientResponse.getData().get(1);
 
         LogUtil.printTable(before);
-        Thread.sleep(3000);
+        Thread.sleep(2500);
         LogUtil.printTable(after);
     }
 
