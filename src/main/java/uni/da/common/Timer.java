@@ -34,6 +34,4 @@ public class Timer {
         return timer;
     }
 
-
-
 }

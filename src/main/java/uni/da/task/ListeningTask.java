@@ -9,7 +9,6 @@ import java.util.concurrent.CountDownLatch;
 
 @Slf4j
 public class ListeningTask extends AbstractRaftTask{
-
     Object sign;
 
     CountDownLatch latch;

@@ -45,20 +45,16 @@ public class BroadcastTask extends AbstractRaftTask {
 
         AtomicInteger rel = new AtomicInteger(1);
 
-
-
         Map<Integer, RaftRpcService> otherNodesService = new HashMap<>(this.consensusState.getRemoteServiceMap());
         otherNodesService.remove(consensusState.getId());
 
         CountDownLatch latch = new CountDownLatch(otherNodesService.size());
-
 
         /**
          * HeartBeat interval = election_timeout / 20;
          * TODO: distinguish broadcast type?
          */
         Thread.sleep(consensusState.getTimeout() / 20);
-
 
         // broadcast message
         for(Integer sid: otherNodesService.keySet()) {
@@ -189,5 +185,11 @@ public class BroadcastTask extends AbstractRaftTask {
 //        consensusState.setCommitAndApply(newCommitIndex);
 
         return EventType.SUCCESS;
+    }
+
+    public static void main(String[] args) {
+
+
+
     }
 }

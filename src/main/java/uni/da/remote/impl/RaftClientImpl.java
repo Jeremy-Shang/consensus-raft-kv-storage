@@ -33,11 +33,16 @@ public class RaftClientImpl implements RaftClient {
     final String remoteServiceName = "RaftRpcService";
 
     public RaftClientImpl() throws InterruptedException, RemoteException {
+
         String ip = "127.0.0.1";
+
         clusterAddr.put(1, new Addr(ip, 6666));
+
         clusterAddr.put(2, new Addr(ip, 6667));
+
         clusterAddr.put(3, new Addr(ip, 6668));
-//        clusterAddr.put(4, new Addr(ip, 6669));
+
+        clusterAddr.put(4, new Addr(ip, 6669));
 
         registry();
 
@@ -55,9 +60,8 @@ public class RaftClientImpl implements RaftClient {
      * @throws RemoteException
      */
     @Override
-    public void ClientPrompt() throws ExecutionException, InterruptedException, RemoteException {
+    public void prompt() throws ExecutionException, InterruptedException, RemoteException {
         Scanner scanner = new Scanner(System.in);
-
         while (true) {
 
             String[] input = scanner.nextLine().split(" ");
@@ -92,24 +96,18 @@ public class RaftClientImpl implements RaftClient {
      * @throws RemoteException
      */
     @Override
-    public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException {
-
+    public void put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException {
         // TODO: client can randomly pick one node
         RaftRpcService service = remoteServiceMap.get(1);
-
-
         service.sayHi();
 
+        ClientResponse<List<Map<Integer, List<LogEntry>>>> clientResponse = service.handleClient(request);
+        Map<Integer, List<LogEntry>> before = clientResponse.getData().get(0);
+        Map<Integer, List<LogEntry>> after = clientResponse.getData().get(1);
 
-        ClientResponse<Map<Integer, List<LogEntry>>> response = service.handleClient(request);
-
-        Map<Integer, List<LogEntry>> data = response.getData();
-
-//         3. 打印数据
-
-        LogUtil.printTable(data);
-
-        return null;
+        LogUtil.printTable(before);
+        Thread.sleep(3000);
+        LogUtil.printTable(after);
     }
 
     @Override
@@ -150,6 +148,14 @@ public class RaftClientImpl implements RaftClient {
                 }
             }
         }
+    }
+
+
+    public static void main(String[] args) throws RemoteException, InterruptedException, ExecutionException {
+        RaftClientImpl raftClient = new RaftClientImpl();
+
+        raftClient.prompt();
+
     }
 
 }

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import uni.da.common.Addr;
 import uni.da.common.Timer;
 import uni.da.entity.Log.LogBody;
+import uni.da.entity.Log.LogEntry;
 import uni.da.node.impl.LogModuleImpl;
 import uni.da.node.impl.StateMachineImpl;
 import uni.da.remote.RaftRpcService;
@@ -108,20 +109,18 @@ public class ConsensusState implements Serializable {
      */
     private Map<Integer, Integer> matchIndex = new ConcurrentHashMap<>();
 
-
-
+    // for recovering connection with crash nodes
     private CopyOnWriteArraySet<Integer> crashNodes = new CopyOnWriteArraySet<>();
 
-
-
-    // 集群leader id
+    // cluster leader id. for redirecting
     public AtomicInteger leaderId = new AtomicInteger(-1);
 
-    // 节点角色
+    // node character
     private volatile Character character = Character.Follower;
 
-    // 每个任期投票历史，并发稳定读写不可抢占
-    private volatile ConcurrentHashMap<Integer, Integer> voteHistory = new ConcurrentHashMap<>();
+    // Peers logs module. Only be used to demo
+    private volatile ConcurrentHashMap<Integer, List<LogEntry>> peersLogs = new ConcurrentHashMap<>();
+
 
     private ConsensusState(int id, String name, Addr addr, int timeout, Map<Integer, Addr> clusterAddr) throws IOException {
         this.id = id;
@@ -134,6 +133,12 @@ public class ConsensusState implements Serializable {
         this.clusterSize = clusterAddr.size();
 
         this.logModule = new LogModuleImpl(String.valueOf(id));
+
+        this.clusterAddr.entrySet().forEach(address -> {
+            this.peersLogs.put(address.getKey(), this.getLogModule().getLogEntries());
+        });
+
+
         this.stateMachineModule = new StateMachineImpl(String.valueOf(id));
 
     }

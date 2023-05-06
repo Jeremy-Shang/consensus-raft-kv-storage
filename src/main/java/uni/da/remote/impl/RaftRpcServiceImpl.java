@@ -162,7 +162,10 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
     @Override
     public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException {
 
-        LogUtil.printBoxedMessage("Receive client request: " + request);
+        log.info("[{}: client request: {} ]", LogType.RECEIVE, request);
+
+        ClientResponse<List<Map<Integer, List<LogEntry>>>> clientResponse = new ClientResponse<>();
+        clientResponse.setData(new ArrayList<>());
 
         // append to local log
         consensusState.getLogModule().append(LogEntry.builder()
@@ -171,21 +174,20 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                 .body(new LogBody(request.getKey() ,request.getVal()))
                 .build());
 
+        // demo: showing cluster logs before synchronized
+        clientResponse.getData().add(consensusState.getPeersLogs());
+
 
         // send to followers
-        Future<EventType> future =  consensusState.getNodeExecutorService().submit(
+        consensusState.getNodeExecutorService().submit(
                 new BroadcastTask(consensusState));
 
+        // wait for followers synchronized
+        Thread.sleep(2000);
 
 
-        // TODO
-        try {
-            future.get();
-        } catch (Exception e) {
-            log.error("fail");
-        }
-
-        Map<Integer, List<LogEntry>> clientEcho = new HashMap<>();
+        // gather followers' logs
+        Map<Integer, List<LogEntry>> peers = new HashMap<>();
 
         for(Integer k: consensusState.getRemoteServiceMap().keySet()) {
 
@@ -197,10 +199,13 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
             } catch (Exception e) {
                 log.error("fail");
             }
-            clientEcho.put(k, new ArrayList<>(logEntries));
+            peers.put(k, new ArrayList<>(logEntries));
         }
 
-        return ClientResponse.success(clientEcho);
+        clientResponse.getData().add(peers);
+
+
+        return clientResponse;
     }
 
 

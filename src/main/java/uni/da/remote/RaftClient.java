@@ -8,10 +8,10 @@ import java.util.concurrent.ExecutionException;
 
 public interface RaftClient {
 
-    public ClientResponse put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException;
+    public void put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException;
 
 
-    public void ClientPrompt() throws ExecutionException, InterruptedException, RemoteException;
+    public void prompt() throws ExecutionException, InterruptedException, RemoteException;
 
 
     public ClientResponse get(ClientRequest request);
