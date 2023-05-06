@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LogUtil {
 
+
+
     public static void printBoxedMessage(String message) {
         int length = message.length() + 20;
 

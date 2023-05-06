@@ -7,6 +7,7 @@ import uni.da.entity.ClientResponse;
 import uni.da.entity.Log.LogEntry;
 import uni.da.remote.RaftClient;
 import uni.da.remote.RaftRpcService;
+import uni.da.util.LogType;
 import uni.da.util.LogUtil;
 
 import java.rmi.RemoteException;
@@ -139,13 +140,13 @@ public class RaftClientImpl implements RaftClient {
 
                     latch.countDown();
 
-                    log.info("[REMOTE GATHER SUCCESS] Get remote service {}. ", addr.toString());
+                    log.info("[{}: gather success] Get remote service {}. ", LogType.REMOTE_RPC,  addr.toString());
 
                     break;
                 } catch (Exception e) {
                     Thread.sleep(3000);
                     e.printStackTrace();
-                    log.info("[REMOTE GATHER FAIL] Get remote service {} fail. Retry times: {}", addr.toString(), count);
+                    log.info("[{}: gather fail] Get remote service {} fail. Retry times: {}", LogType.REMOTE_RPC, addr.toString(), count);
                 }
             }
         }

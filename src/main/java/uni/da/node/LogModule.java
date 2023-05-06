@@ -20,5 +20,7 @@ public interface LogModule extends RaftModule{
 
     public LogEntry getLogEntry(int index, int term);
 
+    public boolean contains(LogEntry entry);
+
 
 }

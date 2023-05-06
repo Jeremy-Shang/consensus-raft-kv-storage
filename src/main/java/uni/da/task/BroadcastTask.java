@@ -16,6 +16,7 @@ import uni.da.node.ConsensusState;
 import uni.da.entity.AppendEntryRequest;
 import uni.da.remote.RaftRpcService;
 import uni.da.statetransfer.fsm.component.EventType;
+import uni.da.util.LogType;
 import uni.da.util.LogUtil;
 
 @Slf4j
@@ -36,16 +37,19 @@ public class BroadcastTask extends AbstractRaftTask {
     @Override
     public EventType call() throws Exception {
 
-        LogUtil.printBoxedMessage(consensusState.getCharacter() + " " + consensusState.getName() + " broadcast msg !");
+        log.debug("[{}] {} {} broadcast msg ! currTerm {}. ", LogType.BROADCAST_MESSAGE, consensusState.getCharacter(), consensusState.getName(), consensusState.getCurrTerm());
 
         CopyOnWriteArrayList<AppendEntryResponse> responses = new CopyOnWriteArrayList<>();
 
         AtomicInteger rel = new AtomicInteger(1);
-        CountDownLatch latch = new CountDownLatch(consensusState.getClusterSize());
+
 
 
         Map<Integer, RaftRpcService> otherNodesService = new HashMap<>(this.consensusState.getRemoteServiceMap());
         otherNodesService.remove(consensusState.getId());
+
+        CountDownLatch latch = new CountDownLatch(otherNodesService.size());
+
 
         /**
          * HeartBeat interval = election_timeout / 10;
@@ -59,28 +63,43 @@ public class BroadcastTask extends AbstractRaftTask {
             consensusState.getNodeExecutorService().execute(new Runnable() {
                 @Override
                 public void run() {
-                    AppendEntryRequest request = null;
+
+                    int nextLogIndex = consensusState.getNextIndex().get(sid);
+                    int prevLogIndex = nextLogIndex - 1;
+                    int preLogTerm = consensusState.getLogModule().getEntryByIndex(prevLogIndex).getTerm();
+                    int lastLogIndex = consensusState.getLogModule().getLastLogIndex();
+                    // Always send heartbeat
+                    List<AppendEntryRequest> requests = new ArrayList<>();
+
+                    requests.add(AppendEntryRequest.builder()
+                            .term(consensusState.getCurrTerm().get())
+                            .leaderId(consensusState.getId())
+                            .prevLogIndex(prevLogIndex)
+                            .preLogTerm(preLogTerm)
+                            .logEntry(null)
+                            .leaderCommit(consensusState.getCommitIndex().get())
+                            .build());
+
                     /**
                      * If last log index ≥ nextIndex for a follower: send
                      * AppendEntries RPC with log entries starting at nextIndex
                      */
-                    int nextLogIndex = consensusState.getNextIndex().get(sid);
-                    int prevLogIndex = nextLogIndex - 1;
-                    int preLogTerm = consensusState.getLogModule().getEntryByIndex(prevLogIndex).getTerm();
-
-                    if (consensusState.getLogModule().getLastLogIndex() > nextLogIndex) {
+                    if (lastLogIndex >= nextLogIndex) {
 
                         LogEntry logEntry = consensusState.getLogModule().getEntryByIndex(nextLogIndex);
 
-                        request = AppendEntryRequest.builder()
+                        requests.add(AppendEntryRequest.builder()
                                 .term(consensusState.getCurrTerm().get())
                                 .leaderId(consensusState.getId())
                                 .prevLogIndex(prevLogIndex)
                                 .preLogTerm(preLogTerm)
                                 .logEntry(logEntry)
                                 .leaderCommit(consensusState.getCommitIndex().get())
-                                .build();
+                                .build());
+                    }
 
+                    // Send message
+                    requests.forEach(request -> {
                         try {
                             AppendEntryResponse response = otherNodesService
                                     .get(sid)
@@ -97,22 +116,27 @@ public class BroadcastTask extends AbstractRaftTask {
                              * TODO: CommitIndex and matchIndex ?
                              * TODO: Using AppendEntry RPC should contain log[]
                              */
-                            if (response.isSuccess()) {
-                                consensusState.getMatchIndex().put(sid, nextLogIndex);
+                            if (request.getLogEntry() != null) {
+                                if (response.isSuccess()) {
+                                    consensusState.getMatchIndex().put(sid, nextLogIndex);
 
-                                consensusState.getNextIndex().put(sid, nextLogIndex + 1);
+                                    consensusState.getNextIndex().put(sid, nextLogIndex + 1);
 
-                                rel.incrementAndGet();
-                            } else {
-                                consensusState.getNextIndex().put(sid, consensusState.getNextIndex().get(sid) - 1);
+                                    rel.incrementAndGet();
+                                } else {
+                                    consensusState.getNextIndex().put(sid, consensusState.getNextIndex().get(sid) - 1);
+                                }
                             }
+
+
                         } catch (RemoteException e) {
                             log.error("[SEND MESSAGE FAIL] from {} to {}. ", consensusState.getId(), sid);
                         } finally {
+                            log.debug("[{}] broadcast response from {}", LogType.RECEIVE, sid);
                             latch.countDown();
                         }
 
-                    }
+                    });
                 }
             });
         }
@@ -156,11 +180,11 @@ public class BroadcastTask extends AbstractRaftTask {
                 .sorted()
                 .toArray();
 
-        int newCommitIndex = N[N.length - 1];
-
-        log.info("[SATISFIED N] {} commitIndex {} ", Arrays.toString(N), newCommitIndex);
-
-        consensusState.setCommitAndApply(newCommitIndex);
+//        int newCommitIndex = N[N.length - 1];
+//
+//        log.info("[SATISFIED N] {} commitIndex {} ", Arrays.toString(N), newCommitIndex);
+//
+//        consensusState.setCommitAndApply(newCommitIndex);
 
         return EventType.SUCCESS;
     }

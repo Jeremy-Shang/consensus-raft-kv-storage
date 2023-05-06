@@ -12,6 +12,7 @@ import uni.da.task.election.ElectionTask;
 import uni.da.task.BroadcastTask;
 import uni.da.task.ListeningTask;
 import uni.da.statetransfer.fsm.component.RaftState;
+import uni.da.util.LogType;
 
 import java.io.IOException;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class ServerStateTransfer implements Runnable {
         Callable<EventType> currTask = taskMap.get(this.raftState);
 
         while (!Thread.currentThread().isInterrupted()) {
-            log.info("[STATE MACHINE FLOW] current state: {}, curr task: {}, curr term: {}" , stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
+            log.debug("[{}] current state: {}, curr task: {}, curr term: {}" , LogType.STATE_TRANSFER, stateMachine.getCurrentState().toString(), currTask.getClass().getName(), consensusState.getCurrTerm());
 
             Future<EventType> future = consensusState.getNodeExecutorService().submit(currTask);
             EventType futureEventType = EventType.FAIL;
@@ -57,15 +58,15 @@ public class ServerStateTransfer implements Runnable {
             try {
                 futureEventType = future.get(consensusState.getTimeout(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                log.info("======> task {} timeout at: {}ms term {}", currTask.getClass().getName(), consensusState.getTimeout(), consensusState.getCurrTerm());
+                log.error("======> task {} timeout at: {}ms term {}", currTask.getClass().getName(), consensusState.getTimeout(), consensusState.getCurrTerm());
                 futureEventType = EventType.TIME_OUT;
                 e.printStackTrace();
             } catch (InterruptedException e) {
-                log.info("======> task {} interrupted term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
+                log.error("======> task {} interrupted term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
                 futureEventType = EventType.FAIL;
                 e.printStackTrace();
             } catch (ExecutionException e) {
-                log.info("======> task {} execution fail term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
+                log.error("======> task {} execution fail term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
 
                 futureEventType = EventType.FAIL;
                 e.printStackTrace();

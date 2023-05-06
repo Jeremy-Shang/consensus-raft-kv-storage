@@ -2,17 +2,21 @@ package uni.da.node.impl;
 
 import lombok.Data;
 
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 import uni.da.common.RedisDb;
 import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
 import uni.da.node.LogModule;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Data
+@Slf4j
 public class LogModuleImpl implements LogModule {
 
     String nodeId;
@@ -25,50 +29,60 @@ public class LogModuleImpl implements LogModule {
         this.nodeId = id;
         this.name = this.nodeId + "-logs";
 
-        Jedis jedis = RedisDb.getJedis();
-        if (jedis.exists(name)) {
-            logEntries = (CopyOnWriteArrayList<LogEntry>) RedisDb.getJsonObject(name, CopyOnWriteArrayList.class);
-        } else {
-            // first Index is 1. Index 0 contains fake data
-            logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-                    new LogEntry(0, 0, new LogBody(-1, "fake"))
-            });
-        }
+//        Jedis jedis = RedisDb.getJedis();
+//        if (jedis.exists(name)) {
+//            logEntries = (CopyOnWriteArrayList<LogEntry>) RedisDb.getJsonObject(name, CopyOnWriteArrayList.class);
+//        } else {
+//            // first Index is 1. Index 0 contains fake data
+//            /**
+//             * "first index is 1"
+//             * Index 0: placeholder data
+//             */
+//            logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
+//                    new LogEntry(0, 0, new LogBody(9999, "placeholder 2")),
+//            });
+//        }
+
+        logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
+                new LogEntry(0, 0, new LogBody(9999, "placeholder 2")),
+        });
     }
 
     @Override
-    public LogEntry getLogEntry(int index, int term) {
+    public synchronized LogEntry getLogEntry(int index, int term) {
 
-        List<LogEntry> lst = logEntries.stream()
-                .filter(e -> e.getLogIndex() == index && e.getTerm() == term)
-                .collect(Collectors.toList());
-
-        return lst.size() == 0 ? null : lst.get(0);
+        for(LogEntry logEntry: logEntries) {
+            if (logEntry.getLogIndex() == index && logEntry.getTerm() == term) {
+                return logEntry;
+            }
+        }
+        return null;
     }
 
     @Override
     public LogEntry getEntryByIndex(int index) {
-        if (index >= logEntries.size()) {
-            return null;
+
+        for (LogEntry logEntry: logEntries) {
+            if (logEntry.getLogIndex() == index) {
+                return logEntry;
+            }
         }
-        return this.logEntries.stream()
-                .filter(e -> e.getLogIndex() == index)
-                .collect(Collectors.toList())
-                .get(0);
+
+        return null;
     }
 
     @Override
     public int getLastLogIndex() {
 
-        return logEntries.stream().map(e -> e.getLogIndex())
-                .max((a, b) -> b - a).get();
+        List<Integer> indexes = logEntries.stream().map(e -> e.getLogIndex()).collect(Collectors.toList());
+
+
+        return Collections.max(indexes);
     }
 
     @Override
     public int getLastLogTerm() {
-        if (logEntries.size() == 0) {
-            return 1;
-        }
+
         return logEntries.get(getLastLogIndex()).getTerm();
     }
 
@@ -80,6 +94,12 @@ public class LogModuleImpl implements LogModule {
     }
 
     @Override
+    public boolean contains(LogEntry entry) {
+        return getLogEntry(entry.getLogIndex(), entry.getTerm()) != null ? true: false;
+    }
+
+
+    @Override
     public void start() {
 
     }
@@ -87,6 +107,12 @@ public class LogModuleImpl implements LogModule {
     @Override
     public void stop() {
 
+    }
+
+    public static void main(String[] args) {
+        LogModuleImpl logModule = new LogModuleImpl("1");
+
+        log.info(logModule.getEntryByIndex(0).toString());
     }
 
 }

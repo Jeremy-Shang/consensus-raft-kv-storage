@@ -15,6 +15,7 @@ import java.rmi.registry.Registry;
 import uni.da.remote.RaftRpcService;
 import uni.da.remote.impl.RaftRpcServiceImpl;
 import uni.da.statetransfer.ServerStateTransfer;
+import uni.da.util.LogType;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -41,8 +42,9 @@ public class NodeModuleImpl implements Node {
 
         this.consensusState = consensusState;
 
+        log.info("Raft cluster: ", consensusState.getClusterAddr());
 
-        log.info("size" + String.valueOf(consensusState.getLogModule().getLogEntries().size()));
+
     }
 
     public static synchronized NodeModuleImpl getInstance(ConsensusState consensusState) throws IOException {
@@ -58,15 +60,22 @@ public class NodeModuleImpl implements Node {
      */
     public void start() throws InterruptedException, IOException {
 
-        log.info("Node[{}] start at {}:{}.", consensusState.getCharacter() , consensusState.getAddr().getIp(), consensusState.getAddr().getPort());
+        log.info("[{}] {} {} start at {}. ", LogType.SERVICE_START, consensusState.getCharacter(), consensusState.getName(), consensusState.getAddr());
 
         int memberNum = consensusState.getClusterAddr().size();
 
 
         /** Rpc service registry and gather*/
         latch = new CountDownLatch(memberNum);
+
         remoteRegistry();
+
         latch.await();
+
+        // Time for all nodes set up connection
+        Thread.sleep(5000);
+        log.info("[REMOTE] Connection establish !");
+
 
 
         /** Start server state transfer*/
@@ -129,7 +138,7 @@ public class NodeModuleImpl implements Node {
         Registry registry = LocateRegistry.createRegistry(consensusState.getAddr().getPort());
         registry.rebind(remoteServiceName, raftRpcService);
 
-        log.info("[REMOTE REGISTRY] node{}: Local remote service registration success", consensusState.getId());
+        log.info("[{}: registry] node{}: Local remote service registration success", LogType.REMOTE_RPC, consensusState.getId());
 
     }
 
@@ -155,13 +164,15 @@ public class NodeModuleImpl implements Node {
 
                     latch.countDown();
 
-                    log.info("[REMOTE GATHER SUCCESS] Get remote service {}. ", addr.toString());
+                    log.info("[{}: gather success] Get remote service {}. ",LogType.REMOTE_RPC,  addr.toString());
 
                     break;
                 } catch (Exception e) {
-                    Thread.sleep(3000);
-                    e.printStackTrace();
-                    log.info("[REMOTE GATHER FAIL] Get remote service {} fail. Retry times: {}", addr.toString(), count);
+                    Thread.sleep(150);
+                    if (count % 10 == 0) {
+                        log.info("[{}: gather fail] Get remote service {} fail. Retry times: {}", LogType.REMOTE_RPC, addr.toString(), count);
+
+                    }
                 }
             }
         }

@@ -11,14 +11,26 @@ import java.io.PipedOutputStream;
 @Data
 @Slf4j
 public class Timer {
+
+    private static Timer timer = null;
+
     private String name;
     private final PipedOutputStream outputStream;
 
     private final PipedInputStream inputStream;
 
-    public Timer(String name) throws IOException {
-        this.name = name;
+    private Timer() throws IOException {
         this.outputStream = new PipedOutputStream();
         this.inputStream = new PipedInputStream(outputStream);
     }
+
+    public synchronized static Timer getInstance() throws IOException {
+        if (timer == null) {
+            timer = new Timer();
+        }
+        return timer;
+    }
+
+
+
 }

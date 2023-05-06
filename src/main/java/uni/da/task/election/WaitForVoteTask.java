@@ -8,6 +8,7 @@ import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
 import uni.da.statetransfer.fsm.component.EventType;
 import uni.da.task.AbstractRaftTask;
+import uni.da.util.LogType;
 import uni.da.util.LogUtil;
 
 import java.util.HashMap;
@@ -48,8 +49,6 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
     @Override
     public EventType call() throws Exception {
 
-        LogUtil.printBoxedMessage(consensusState.getName() + " start election !");
-
         /** Convert to candidate */
         consensusState.setCharacter(Character.Candidate);
 
@@ -58,6 +57,9 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
 
         /** Vote for self */
         consensusState.setVotedFor(consensusState.getId());
+
+        log.info("[{}] {} {} start election ! curr term {}", LogType.START_ELECTION, consensusState.getCharacter(), consensusState.getName(), consensusState.getCurrTerm());
+
 
         /** TODO: Reset election timer ? */
 
@@ -83,11 +85,12 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
                     try {
                         RequestVoteResponse response = otherNodesService.get(id).requestVote(requestVoteRequest);
                         if (response.isVoteGranted()) {
-                            log.info("[RECEIVE VOTE] node{} receive vote from node{}", consensusState.getId(), id);
+                            log.debug("[RECEIVE VOTE] node{} receive vote from node{}", consensusState.getId(), id);
                             votesCount.countDown();
                         }
                     } catch (Exception e) {
                         log.error("[SEND REQUEST VOTE FAIL]：{} -> {} ", consensusState.getId(), id);
+                        e.printStackTrace();
                     }
                 }
             });
@@ -95,9 +98,8 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
 
         votesCount.await();
 
-        LogUtil.printBoxedMessage(consensusState.getName() + " become leader !");
-
         // If votes received from the majority of servers: become leader
+        log.info("[{}] {} become leader! currTerm {}. ", LogType.CHARACTER_CHANGE, consensusState.getName(), consensusState.getCurrTerm());
         consensusState.setCharacter(Character.Leader);
 
 
