@@ -109,6 +109,7 @@ class WaitForVoteTask extends AbstractRaftTask implements Callable<EventType> {
         // If votes received from the majority of servers: become leader
         log.info("[{}] {} become leader! currTerm {}. ", LogType.CHARACTER_CHANGE, consensusState.getName(), consensusState.getCurrTerm());
         consensusState.setCharacter(Character.Leader);
+        consensusState.getLeaderId().set(consensusState.getId());
 
 
         sign = "task finish";

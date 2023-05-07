@@ -13,10 +13,7 @@ import uni.da.util.LogUtil;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
@@ -37,12 +34,10 @@ public class RaftClientImpl implements RaftClient {
         String ip = "127.0.0.1";
 
         clusterAddr.put(1, new Addr(ip, 6666));
-
         clusterAddr.put(2, new Addr(ip, 6667));
-
         clusterAddr.put(3, new Addr(ip, 6668));
-
         clusterAddr.put(4, new Addr(ip, 6669));
+        clusterAddr.put(5, new Addr(ip, 6670));
 
         registry();
 
@@ -90,8 +85,15 @@ public class RaftClientImpl implements RaftClient {
      */
     @Override
     public void put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException {
+
         // TODO: client can randomly pick one node
-        RaftRpcService service = remoteServiceMap.get(1);
+        Random random = new Random();
+        int random_id = random.nextInt(5) + 1;
+
+        log.info("[CLIENT] send command to node {}", random_id);
+
+        RaftRpcService service = remoteServiceMap.get(random_id);
+
         service.sayHi();
 
         ClientResponse<List<Map<Integer, List<LogEntry>>>> clientResponse = service.handleClient(request);
@@ -104,7 +106,7 @@ public class RaftClientImpl implements RaftClient {
         Map<Integer, List<LogEntry>> after = clientResponse.getData().get(1);
 
         LogUtil.printTable(before);
-        Thread.sleep(2500);
+        Thread.sleep(2000);
         LogUtil.printTable(after);
     }
 

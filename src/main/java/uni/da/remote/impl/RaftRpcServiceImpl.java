@@ -112,6 +112,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         // leader's rpc is not outdated. reset timer.
         resetTimer(request.getLeaderId(), "appendEntry");
+        consensusState.getLeaderId().set(request.getLeaderId());
 
         if (consensusState.getLogModule()
                 .getLogEntry(request.getPrevLogIndex(), request.getPreLogTerm()) == null) {
@@ -134,7 +135,7 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                 List<LogEntry> removeIndexes = consensusState.getLogModule().getLogEntries()
                         .stream().filter(e -> e.getLogIndex() >= logIndex)
                         .collect(Collectors.toList());
-                
+
                 removeIndexes.forEach(e -> consensusState.getLogModule().removeEntry(e.getLogIndex()));
             }
 
@@ -170,9 +171,19 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
      * @throws InterruptedException
      */
     @Override
-    public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException {
+    public ClientResponse handleClient(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException {
 
         log.info("[{}: client request: {} ]", LogType.RECEIVE, request);
+
+        int leaderId = consensusState.getLeaderId().get();
+
+        if (leaderId != consensusState.getId()) {
+            log.info("[REDIRECT] redirect client's message to leader. {} -> {}", consensusState.getId(), leaderId);
+
+            return consensusState.getRemoteServiceMap().get(leaderId).handleClient(request);
+        }
+
+
 
         ClientResponse<List<Map<Integer, List<LogEntry>>>> clientResponse = new ClientResponse<>();
         clientResponse.setData(new ArrayList<>());
@@ -188,7 +199,6 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         clientResponse.getData().add(new ConcurrentHashMap<>(consensusState.getPeersLogs()));
         log.info("before {} ", consensusState.getPeersLogs());
 
-
         // send to followers
         consensusState.getNodeExecutorService().submit(
                 new BroadcastTask(consensusState));
@@ -196,12 +206,10 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         // wait for followers synchronized
         Thread.sleep(2000);
 
-
         // gather followers' logs
         Map<Integer, List<LogEntry>> peers = new HashMap<>();
         List<Integer> followers = new ArrayList<>(consensusState.getRemoteServiceMap().keySet());
         followers.remove(Integer.valueOf(consensusState.getId()));
-
 
         for(Integer k: followers) {
 

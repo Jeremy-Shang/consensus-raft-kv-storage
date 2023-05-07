@@ -75,7 +75,7 @@ public class NodeModuleImpl implements Node {
         latch.await();
 
         // Time for all nodes set up connection
-        Thread.sleep(5000);
+        Thread.sleep(3000);
         log.info("[REMOTE] Connection establish !");
 
 
@@ -171,7 +171,7 @@ public class NodeModuleImpl implements Node {
 
                     break;
                 } catch (Exception e) {
-                    Thread.sleep(150);
+                    Thread.sleep(100);
                     if (count % 10 == 0) {
                         log.info("[{}: gather fail] Get remote service {} fail. Retry times: {}", LogType.REMOTE_RPC, addr.toString(), count);
 
