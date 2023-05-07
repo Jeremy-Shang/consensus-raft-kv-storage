@@ -8,10 +8,8 @@ import uni.da.entity.Log.LogEntry;
 import uni.da.node.Character;
 import uni.da.node.ConsensusState;
 import uni.da.remote.RaftRpcService;
-import uni.da.statetransfer.fsm.component.EventType;
 import uni.da.task.BroadcastTask;
 import uni.da.util.LogType;
-import uni.da.util.LogUtil;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -23,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Data
@@ -127,9 +125,17 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         LogEntry newLogEntry = request.getLogEntry();
 
         if (newLogEntry != null) {
-            LogEntry oldLogEntry = consensusState.getLogModule().getEntryByIndex(newLogEntry.getLogIndex());
+            int logIndex = newLogEntry.getLogIndex();
+
+            LogEntry oldLogEntry = consensusState.getLogModule().getLogEntry(logIndex);
+
             if (oldLogEntry != null && newLogEntry.getTerm() == oldLogEntry.getTerm()) {
                 // TODO  delete the existing entry and all that follow it
+                List<LogEntry> removeIndexes = consensusState.getLogModule().getLogEntries()
+                        .stream().filter(e -> e.getLogIndex() >= logIndex)
+                        .collect(Collectors.toList());
+                
+                removeIndexes.forEach(e -> consensusState.getLogModule().removeEntry(e.getLogIndex()));
             }
 
         }
@@ -149,7 +155,6 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
                 .term(consensusState.getCurrTerm().get())
                 .success(true)
                 .build();
-
     }
 
 

@@ -45,8 +45,7 @@ public class NodeModuleImpl implements Node {
 
         this.consensusState = consensusState;
 
-        log.info("Raft cluster: ", consensusState.getClusterAddr());
-
+        log.info("Raft cluster: {}. ", consensusState.getClusterAddr());
 
     }
 

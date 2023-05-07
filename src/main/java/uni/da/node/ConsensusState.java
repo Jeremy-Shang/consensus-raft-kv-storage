@@ -17,7 +17,6 @@ import java.io.Serializable;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -168,7 +167,7 @@ public class ConsensusState implements Serializable {
         if (this.commitIndex.get() > this.lastApplied.get()) {
             this.lastApplied.incrementAndGet();
 
-            LogBody logBody = this.logModule.getEntryByIndex(this.lastApplied.get()).getBody();
+            LogBody logBody = this.logModule.getLogEntry(this.lastApplied.get()).getBody();
 
             this.stateMachineModule.commit(logBody);
         }

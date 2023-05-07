@@ -2,9 +2,7 @@ package uni.da.node.impl;
 
 import lombok.Data;
 
-import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
-import redis.clients.jedis.Jedis;
 import uni.da.common.RedisDb;
 import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
@@ -60,7 +58,7 @@ public class LogModuleImpl implements LogModule {
     }
 
     @Override
-    public LogEntry getEntryByIndex(int index) {
+    public synchronized LogEntry getLogEntry(int index) {
 
         for (LogEntry logEntry: logEntries) {
             if (logEntry.getLogIndex() == index) {
@@ -98,6 +96,22 @@ public class LogModuleImpl implements LogModule {
         return getLogEntry(entry.getLogIndex(), entry.getTerm()) != null ? true: false;
     }
 
+    @Override
+    public synchronized void removeEntry(int index) {
+        LogEntry remove = null;
+        for (LogEntry entry: logEntries) {
+            if (entry.getLogIndex() == index) {
+                remove = entry;
+            }
+        }
+
+        if (remove != null) {
+            logEntries.remove(remove);
+        }
+
+    }
+
+
 
     @Override
     public void start() {
@@ -112,7 +126,7 @@ public class LogModuleImpl implements LogModule {
     public static void main(String[] args) {
         LogModuleImpl logModule = new LogModuleImpl("1");
 
-        log.info(logModule.getEntryByIndex(0).toString());
+        log.info(logModule.getLogEntry(0).toString());
     }
 
 }

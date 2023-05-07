@@ -17,7 +17,6 @@ import uni.da.entity.AppendEntryRequest;
 import uni.da.remote.RaftRpcService;
 import uni.da.statetransfer.fsm.component.EventType;
 import uni.da.util.LogType;
-import uni.da.util.LogUtil;
 
 @Slf4j
 public class BroadcastTask extends AbstractRaftTask {
@@ -64,7 +63,7 @@ public class BroadcastTask extends AbstractRaftTask {
 
                     int nextLogIndex = consensusState.getNextIndex().get(sid);
                     int prevLogIndex = nextLogIndex - 1;
-                    int preLogTerm = consensusState.getLogModule().getEntryByIndex(prevLogIndex).getTerm();
+                    int preLogTerm = consensusState.getLogModule().getLogEntry(prevLogIndex).getTerm();
                     int lastLogIndex = consensusState.getLogModule().getLastLogIndex();
                     // Always send heartbeat
                     List<AppendEntryRequest> requests = new ArrayList<>();
@@ -84,7 +83,7 @@ public class BroadcastTask extends AbstractRaftTask {
                      */
                     if (lastLogIndex >= nextLogIndex) {
 
-                        LogEntry logEntry = consensusState.getLogModule().getEntryByIndex(nextLogIndex);
+                        LogEntry logEntry = consensusState.getLogModule().getLogEntry(nextLogIndex);
 
                         AppendEntryRequest appendEntry = AppendEntryRequest.builder()
                                 .term(consensusState.getCurrTerm().get())
@@ -153,46 +152,40 @@ public class BroadcastTask extends AbstractRaftTask {
 
         latch.await();
 
+        List<Integer> N = new ArrayList<>();
+
         int[] matches = consensusState.getMatchIndex().values().stream().mapToInt(e -> e).toArray();
 
-
         // Condition 1: N > commitIndex and log[N].term == currentTerm
-        int[] N = IntStream.range(0, Arrays.stream(matches).max().getAsInt())
-                .filter(n -> consensusState.getLogModule().getEntryByIndex(n).getTerm() == consensusState.getCurrTerm().get() && n > consensusState.getCommitIndex().get())
+        int[] tmp = IntStream.range(0, Arrays.stream(matches).max().getAsInt())
+                .filter(n -> consensusState.getLogModule().getLogEntry(n).getTerm() == consensusState.getCurrTerm().get() && n > consensusState.getCommitIndex().get())
                 .sorted()
                 .toArray();
 
         // Condition 2: a majority of matchIndex[i] ≥ N
-        Map<Integer, Integer> map = Arrays.stream(N)
-                .boxed()
-                .collect(Collectors.toMap(Function.identity(), n -> 0));
+        for (int i=0; i<tmp.length; i++) {
+            int currN = tmp[i];
 
-        Arrays.stream(N).mapToObj(e -> (Integer) e)
-                .flatMap(n -> Arrays.stream(matches)
-                                .filter(m -> m > n)
-                                .mapToObj(m -> Map.entry(m, 1)))
-                .collect(Collectors.groupingBy(Map.Entry::getKey))
-                .forEach((k, v) -> map.put(k, v.stream().mapToInt(Map.Entry::getValue).sum()));
+            int count = (int) Arrays.stream(matches)
+                    .filter(e -> e >= currN)
+                    .count();
+            if (count > (matches.length / 2) + 1) {
+                N.add(currN);
+            }
+        }
 
-        N = map.entrySet()
-                .stream()
-                .filter(entry -> entry.getValue() > (consensusState.getClusterSize() / 2) + 1)
-                .map(e -> e.getKey())
-                .mapToInt(e -> e)
-                .sorted()
-                .toArray();
-
-//        int newCommitIndex = N[N.length - 1];
-//
-//        log.info("[SATISFIED N] {} commitIndex {} ", Arrays.toString(N), newCommitIndex);
-//
-//        consensusState.setCommitAndApply(newCommitIndex);
+        // Condition 3: if exist, set commitIndex = N
+        if (!N.isEmpty()) {
+            log.debug("N -> {}", N);
+            Collections.sort(N);
+            consensusState.setCommitAndApply(N.get(N.size() - 1));
+        }
 
         return EventType.SUCCESS;
     }
 
-    public static void main(String[] args) {
 
+    public static void main(String[] args) {
 
 
     }
