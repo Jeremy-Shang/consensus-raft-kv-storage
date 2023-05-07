@@ -165,11 +165,16 @@ public class ConsensusState implements Serializable {
         this.commitIndex.set(newCommitIndex);
 
         if (this.commitIndex.get() > this.lastApplied.get()) {
+
             this.lastApplied.incrementAndGet();
 
-            LogBody logBody = this.logModule.getLogEntry(this.lastApplied.get()).getBody();
+            LogEntry entry = this.logModule.getLogEntry(this.lastApplied.get());
 
-            this.stateMachineModule.commit(logBody);
+            LogBody body = entry.getBody();
+
+            log.info("[COMMIT] commit {} to state machine. ", entry);
+
+            this.stateMachineModule.commit(body);
         }
     }
 
