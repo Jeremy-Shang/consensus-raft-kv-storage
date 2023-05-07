@@ -3,6 +3,7 @@ package uni.da.node.impl;
 import lombok.Data;
 
 import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.Jedis;
 import uni.da.common.RedisDb;
 import uni.da.entity.Log.LogBody;
 import uni.da.entity.Log.LogEntry;
@@ -27,23 +28,19 @@ public class LogModuleImpl implements LogModule {
         this.nodeId = id;
         this.name = this.nodeId + "-logs";
 
-//        Jedis jedis = RedisDb.getJedis();
-//        if (jedis.exists(name)) {
-//            logEntries = (CopyOnWriteArrayList<LogEntry>) RedisDb.getJsonObject(name, CopyOnWriteArrayList.class);
-//        } else {
-//            // first Index is 1. Index 0 contains fake data
-//            /**
-//             * "first index is 1"
-//             * Index 0: placeholder data
-//             */
-//            logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-//                    new LogEntry(0, 0, new LogBody(9999, "placeholder 2")),
-//            });
-//        }
+        Jedis jedis = RedisDb.getJedis();
 
-        logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
-                new LogEntry(0, 0, new LogBody(0, "placeholder")),
-        });
+        if (jedis != null && jedis.exists(name)) {
+            logEntries = (CopyOnWriteArrayList<LogEntry>) RedisDb.getJsonObject(name, CopyOnWriteArrayList.class);
+        } else {
+            /**
+             * "first index is 1"
+             * Index 0: placeholder data
+             */
+            logEntries = new CopyOnWriteArrayList<>(new LogEntry[]{
+                    new LogEntry(0, 0, new LogBody(0, "placeholder")),
+            });
+        }
     }
 
     @Override
