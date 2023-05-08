@@ -119,10 +119,17 @@ Parameter:
  7322  java -Did=4 -Dport=6668 -Dtimeout=6987 -jar Consensus-Raft-1.0-SNAPSHOT-shaded.jar
 ```
 
-## Interact with Raft cluster (TODO: still in progress)
+## Interact with Raft cluster
 
 
-To test the Raft cluster and interact with it, you can run the `ClientPrompt()` method in `uni.da.remote.RaftClient.`
+To test the Raft cluster and interact with it, you can run the `ClientTest()` in `test/`
+
+Currently, two command which are "put" and "get" are supported.
+
+Usage
+
+- `put 1 "hello_world"`
+- `get 1`
 
 
 
