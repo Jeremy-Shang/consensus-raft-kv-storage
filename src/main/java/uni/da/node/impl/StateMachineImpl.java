@@ -24,11 +24,12 @@ public class StateMachineImpl implements StateMachineModule {
 
     public StateMachineImpl(String id) {
         this.nodeId = id;
-        this.name = id;
+        this.name = id + "-statemachine";
 
         Jedis jedis = RedisDb.getJedis();
-        if (jedis.exists(name)) {
-            stateMachine = (ConcurrentHashMap<Integer, String>) RedisDb.getJsonObject(name, ConcurrentHashMap.class);
+
+        if (jedis != null && jedis.exists(name)) {
+            stateMachine = (ConcurrentHashMap<Integer, String>) RedisDb.getJsonObject(name, "stateMachine");
         } else {
             stateMachine = new ConcurrentHashMap<>();
         }
@@ -55,5 +56,11 @@ public class StateMachineImpl implements StateMachineModule {
         stateMachine.put(body.getKey(), body.getValue());
 
         RedisDb.setJsonString(name, stateMachine);
+    }
+
+    @Override
+    public String get(int key) {
+
+        return stateMachine.get(key);
     }
 }

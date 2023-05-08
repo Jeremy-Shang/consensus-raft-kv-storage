@@ -175,6 +175,15 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         log.info("[{}: client request: {} ]", LogType.RECEIVE, request);
 
+        if (request.getType() == ClientRequest.Type.GET) {
+            ClientResponse<String> rel = new ClientResponse<>();
+            rel.setData(consensusState.getStateMachineModule().get(request.getKey()));
+
+            return rel;
+        }
+
+
+
         int leaderId = consensusState.getLeaderId().get();
 
         if (leaderId != consensusState.getId()) {
@@ -197,7 +206,6 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
 
         // demo: showing cluster logs before synchronized
         clientResponse.getData().add(new ConcurrentHashMap<>(consensusState.getPeersLogs()));
-        log.info("before {} ", consensusState.getPeersLogs());
 
         // send to followers
         consensusState.getNodeExecutorService().submit(
@@ -226,7 +234,6 @@ public class RaftRpcServiceImpl extends UnicastRemoteObject implements RaftRpcSe
         }
 
         clientResponse.getData().add(new ConcurrentHashMap<>(consensusState.getPeersLogs()));
-        log.info("after {} ", consensusState.getPeersLogs());
 
 
         return clientResponse;

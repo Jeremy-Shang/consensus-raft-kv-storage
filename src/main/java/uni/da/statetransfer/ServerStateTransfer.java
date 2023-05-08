@@ -39,7 +39,7 @@ public class ServerStateTransfer implements Runnable {
 
         taskMap.put(RaftState.ELECTION, new ElectionTask(consensusState));
 
-        taskMap.put(RaftState.HEAR_BEAT, new BroadcastTask(consensusState));
+        taskMap.put(RaftState.HEART_BEAT, new BroadcastTask(consensusState));
 
         stateTransferRegistry();
     }
@@ -64,7 +64,7 @@ public class ServerStateTransfer implements Runnable {
             } catch (TimeoutException e) {
                 log.error("======> task {} timeout at: {}ms term {}", currTask.getClass().getName(), consensusState.getTimeout(), consensusState.getCurrTerm());
                 futureEventType = EventType.TIME_OUT;
-                e.printStackTrace();
+//                e.printStackTrace();
             } catch (InterruptedException e) {
                 log.error("======> task {} interrupted term{}", currTask.getClass().getName(), consensusState.getCurrTerm());
                 futureEventType = EventType.FAIL;
@@ -100,8 +100,8 @@ public class ServerStateTransfer implements Runnable {
         });
 
 
-        stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
-            return RaftState.HEAR_BEAT;
+        stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.HEART_BEAT, EventType.SUCCESS, (o, e ) -> {
+            return RaftState.HEART_BEAT;
         });
 
         stateMachineFactory.addTransition(RaftState.ELECTION, RaftState.LISTENING_HEARTBEAT, EventType.FAIL, (o, e ) -> {
@@ -113,16 +113,16 @@ public class ServerStateTransfer implements Runnable {
         });
 
 
-        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.SUCCESS, (o, e ) -> {
-            return RaftState.HEAR_BEAT;
+        stateMachineFactory.addTransition(RaftState.HEART_BEAT, RaftState.HEART_BEAT, EventType.SUCCESS, (o, e ) -> {
+            return RaftState.HEART_BEAT;
         });
 
-        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.FAIL, (o, e ) -> {
-            return RaftState.HEAR_BEAT;
+        stateMachineFactory.addTransition(RaftState.HEART_BEAT, RaftState.HEART_BEAT, EventType.FAIL, (o, e ) -> {
+            return RaftState.HEART_BEAT;
         });
 
-        stateMachineFactory.addTransition(RaftState.HEAR_BEAT, RaftState.HEAR_BEAT, EventType.TIME_OUT, (o, e ) -> {
-            return RaftState.HEAR_BEAT;
+        stateMachineFactory.addTransition(RaftState.HEART_BEAT, RaftState.HEART_BEAT, EventType.TIME_OUT, (o, e ) -> {
+            return RaftState.HEART_BEAT;
         });
 
 

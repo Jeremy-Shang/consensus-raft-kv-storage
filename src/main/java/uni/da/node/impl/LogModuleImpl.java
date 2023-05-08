@@ -31,7 +31,7 @@ public class LogModuleImpl implements LogModule {
         Jedis jedis = RedisDb.getJedis();
 
         if (jedis != null && jedis.exists(name)) {
-            logEntries = (CopyOnWriteArrayList<LogEntry>) RedisDb.getJsonObject(name, CopyOnWriteArrayList.class);
+            logEntries = (CopyOnWriteArrayList<LogEntry>) RedisDb.getJsonObject(name, "logModule");
         } else {
             /**
              * "first index is 1"
@@ -70,7 +70,6 @@ public class LogModuleImpl implements LogModule {
     public int getLastLogIndex() {
 
         List<Integer> indexes = logEntries.stream().map(e -> e.getLogIndex()).collect(Collectors.toList());
-
 
         return Collections.max(indexes);
     }
@@ -123,7 +122,7 @@ public class LogModuleImpl implements LogModule {
     public static void main(String[] args) {
         LogModuleImpl logModule = new LogModuleImpl("1");
 
-        log.info(logModule.getLogEntry(0).toString());
+        log.info(logModule.getLogEntries().toString());
     }
 
 }

@@ -20,8 +20,6 @@ public class LogTest {
         logger.trace("trace");
         logger.warn("warn");
 
-
-
         Map<Integer, List<LogEntry>> records = new HashMap<>();
 
 // 初始化id为1的记录

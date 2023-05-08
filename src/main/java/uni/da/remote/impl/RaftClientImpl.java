@@ -10,6 +10,7 @@ import uni.da.remote.RaftRpcService;
 import uni.da.util.LogType;
 import uni.da.util.LogUtil;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -28,6 +29,8 @@ public class RaftClientImpl implements RaftClient {
     CountDownLatch latch;
 
     final String remoteServiceName = "RaftRpcService";
+
+    List<Integer> crashNodes = new ArrayList<>();
 
     public RaftClientImpl() throws InterruptedException, RemoteException {
 
@@ -53,7 +56,7 @@ public class RaftClientImpl implements RaftClient {
      * @throws RemoteException
      */
     @Override
-    public void prompt() throws ExecutionException, InterruptedException, RemoteException {
+    public void prompt() throws ExecutionException, InterruptedException, RemoteException, NotBoundException {
         Scanner scanner = new Scanner(System.in);
         while (true) {
 
@@ -61,14 +64,16 @@ public class RaftClientImpl implements RaftClient {
 
             String command = input[0];
 
+            log.info("command: {}", command);
+
             if (command.equals("put")) {
                 int key = Integer.parseInt(input[1]);
                 String val = input[2];
 
                 put(new ClientRequest(ClientRequest.Type.PUT, key, val));
             } else if (command.equals("get")) {
-                int key = scanner.nextInt();
-
+                int key = Integer.parseInt(input[1]);
+                log.info("hi");
                 get(new ClientRequest(ClientRequest.Type.GET, key));
             }
         }
@@ -84,36 +89,75 @@ public class RaftClientImpl implements RaftClient {
      * @throws RemoteException
      */
     @Override
-    public void put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException {
+    public void put(ClientRequest request) throws ExecutionException, InterruptedException, RemoteException, NotBoundException {
 
         // TODO: client can randomly pick one node
         Random random = new Random();
-        int random_id = random.nextInt(5) + 1;
+        RaftRpcService service;
+        ClientResponse<List<Map<Integer, List<LogEntry>>>> clientResponse;
+        while (true) {
+            retryConnection();
+            int random_id = random.nextInt(5) + 1;
 
-        log.info("[CLIENT] send command to node {}", random_id);
+            log.info("[CLIENT] send command to node {}", random_id);
 
-        RaftRpcService service = remoteServiceMap.get(random_id);
+            service = remoteServiceMap.get(random_id);
 
-        service.sayHi();
+            try {
+                service.sayHi();
+                clientResponse = service.handleClient(request);
+            } catch (Exception e) {
+                log.info("[CLIENT] connection fail, try next ...");
+                Thread.sleep(300);
+                continue;
+            }
 
-        ClientResponse<List<Map<Integer, List<LogEntry>>>> clientResponse = service.handleClient(request);
+            break;
+        }
+
+
+
 
         if (clientResponse == null) {
             return ;
         }
 
         Map<Integer, List<LogEntry>> before = clientResponse.getData().get(0);
+
         Map<Integer, List<LogEntry>> after = clientResponse.getData().get(1);
 
         LogUtil.printTable(before);
-        Thread.sleep(2000);
+        log.info("");
+        Thread.sleep(1500);
         LogUtil.printTable(after);
     }
 
     @Override
-    public ClientResponse get(ClientRequest request) {
+    public void get(ClientRequest request) throws ExecutionException, RemoteException, InterruptedException, NotBoundException {
+        Random random = new Random();
+        RaftRpcService service;
+        while (true) {
+            retryConnection();
+            int random_id = random.nextInt(5) + 1;
 
-        return null;
+            log.info("[CLIENT] send command to node {}", random_id);
+
+
+            service = remoteServiceMap.get(random_id);
+
+            try {
+                service.sayHi();
+            } catch (Exception e) {
+                this.crashNodes.add(random_id);
+                continue;
+            }
+
+            break;
+        }
+
+        ClientResponse<String> clientResponse = service.handleClient(request);
+
+        log.info(clientResponse.getData());
 
     }
 
@@ -151,11 +195,31 @@ public class RaftClientImpl implements RaftClient {
     }
 
 
-    public static void main(String[] args) throws RemoteException, InterruptedException, ExecutionException {
+    public static void main(String[] args) throws RemoteException, InterruptedException, ExecutionException, NotBoundException {
         RaftClientImpl raftClient = new RaftClientImpl();
 
         raftClient.prompt();
 
+    }
+
+    public void retryConnection() throws RemoteException, NotBoundException {
+        for(Integer id: clusterAddr.keySet()) {
+            Addr addr = clusterAddr.get(id);
+
+            String host = addr.getIp();
+            int port = addr.getPort();
+
+            try {
+                Registry registry = LocateRegistry.getRegistry(host, port);
+                RaftRpcService remoteObject = (RaftRpcService) registry.lookup(remoteServiceName);
+
+                remoteServiceMap.put(id, remoteObject);
+
+//                log.info("[{}: gather success] Get remote service {}. ", LogType.REMOTE_RPC,  addr.toString());
+            } catch (Exception e) {
+//                log.info("[CLIENT] retry node{} fail.", id);
+            }
+        }
     }
 
 }

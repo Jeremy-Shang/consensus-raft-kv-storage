@@ -1,8 +1,13 @@
 package uni.da.common;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import uni.da.entity.Log.LogEntry;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Redis Db for persistence storage
@@ -28,12 +33,21 @@ public class RedisDb {
         jedis.set(key, JSON.toJSONString(object));
         jedis.close();
     }
-    public static Object getJsonObject(String key,Class clazz){
+    public static Object getJsonObject(String key, String method){
         Jedis jedis = RedisDb.getJedis();
         String value = jedis.get(key);
         jedis.close();
-        return JSON.parseObject(value,clazz);
+
+        if (method == "logModule") {
+            return JSON.parseObject(value,new TypeReference<CopyOnWriteArrayList<LogEntry>>(){});
+
+        } else {
+            return JSON.parseObject(value,new TypeReference<ConcurrentHashMap<Integer, String>>(){});
+        }
     }
+
+
+
 
     public synchronized static Jedis getJedis() {
         try {
